@@ -15,10 +15,21 @@
  *
  */
 
-/**
- * Package with classes for generation random numbers, enums, records and any other java objects.
- * It contains main interface {@link org.system_false.random.generator.Generator} and its
- * implementations. For simple creation instances of this interface {@link org.system_false.random.generator.Generators}
- * should be used.
- */
 package org.system_false.random.generator;
+
+import java.util.List;
+
+/**
+ * Common interface for all pool generators. Implementations of this interface generates
+ * random values from specified pool of values.
+ *
+ * @param <T> the type of the generated values
+ */
+public interface PoolGenerator<T> extends Generator<T> {
+    /**
+     * Returns the pool of values that this generator generates from.
+     *
+     * @return the pool of values
+     */
+    List<T> getPool();
+}
