@@ -21,6 +21,7 @@ import java.lang.reflect.Array;
 import java.math.BigInteger;
 import java.util.*;
 import java.util.function.BiFunction;
+import java.util.function.Function;
 
 /**
  * This interface is used to generate random values of any type.
@@ -54,6 +55,41 @@ public interface Generator<T> {
      * @return a random value of the type represented by this generator
      */
     T generate(Random random);
+
+    /**
+     * Generates a random value of the type represented by this generator using a newly created PRNG.
+     *
+     * @return a random value of the type represented by this generator
+     */
+    default T generate() {
+        return generate(new Random());
+    }
+
+    /**
+     * Maps the generated value to a new value of type {@code R} using the given function.
+     *
+     * @param mapper the function to use for mapping
+     * @param <R>    the type of the new value
+     * @return a new {@link Generator} that maps the generated value to a new value of type {@code R}
+     */
+    default <R> Generator<R> map(Function<T, R> mapper) {
+        Objects.requireNonNull(mapper);
+        return random -> mapper.apply(generate(random));
+    }
+
+    /**
+     * Maps the generated value to a new generator of type {@code R} using the given function and
+     * then generates a value from the new generator.
+     *
+     * @param mapper the function to use for mapping
+     * @param <R>    the type of the new value
+     * @return a new {@link Generator} that maps the generated value to a new generator and then
+     * generates a value from the new generator
+     */
+    default <R> Generator<R> flatMap(Function<T, Generator<R>> mapper) {
+        Objects.requireNonNull(mapper);
+        return random -> mapper.apply(generate(random)).generate(random);
+    }
 
     /**
      * Generates a random byte.

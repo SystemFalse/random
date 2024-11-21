@@ -17,19 +17,26 @@
 
 package org.system_false.random.generator;
 
-import java.util.List;
-
 /**
  * Common interface for all pool generators. Implementations of this interface generates
  * random values from specified pool of values.
  *
  * @param <T> the type of the generated values
  */
-public interface PoolGenerator<T> extends Generator<T> {
+public interface PoolGenerator<T> extends Generator<T>, Iterable<PoolItem<?>> {
     /**
-     * Returns the pool of values that this generator generates from.
+     * The number of items in the pool.
      *
-     * @return the pool of values
+     * @return the number of items in the pool
      */
-    List<T> getPool();
+    int size();
+
+    /**
+     * Returns the {@link PoolItem} at the specified index in the pool.
+     *
+     * @param index the index of the item to return
+     * @return the item at the specified index in the pool
+     * @throws IndexOutOfBoundsException if the index is out of range ({@code index < 0 || index >= size()})
+     */
+    PoolItem<?> get(int index);
 }
