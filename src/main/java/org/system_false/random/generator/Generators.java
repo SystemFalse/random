@@ -908,7 +908,7 @@ public final class Generators {
     public static PoolGenerator<List<Object>> ofMultiplePool(Generator<Object>... values) {
         return new MultiplePoolGenerator(values);
     }
-    
+
     /**
      * Creates a {@link PoolGenerator} that generates random values from the given values.
      * <p>
@@ -1360,7 +1360,7 @@ public final class Generators {
         public SinglePoolGenerator(Generator<T>[] values) {
             super(values);
         }
-
+        
         public SinglePoolGenerator(Collection<Generator<T>> values) {
             super(values);
         }
