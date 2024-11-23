@@ -15,14 +15,16 @@
  *
  */
 
-package org.system_false.random.generator;
+package io.github.system_false.random;
 
 import java.lang.reflect.Array;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.BiFunction;
+import java.util.function.BooleanSupplier;
 
 /**
- * Utility class for creating instances of {@link org.system_false.random.generator.Generator} interface.
+ * Utility class for creating instances of {@link Generator} interface.
  */
 public final class Generators {
     /**
@@ -31,11 +33,33 @@ public final class Generators {
     private Generators() {}
 
     /**
-     * Creates a {@link org.system_false.random.generator.Generator} that generates random {@code boolean} values.
-     * @return a {@link org.system_false.random.generator.Generator} that generates random {@code boolean} values
+     * Creates a {@link Generator} that generates random {@code boolean} values.
+     * @return a {@link Generator} that generates random {@code boolean} values
      */
     public static Generator<Boolean> ofBoolean() {
         return Random::nextBoolean;
+    }
+
+    /**
+     * Creates a {@link Generator} that generates a random {@code boolean} value based on the given chance.
+     * <p>
+     * The chance is a double value in the range [0, 1]. For example, if the chance is 0.25, then the generator
+     * will return true for 25% of the generated values.
+     * </p>
+     * @param chance the chance of the generator returning true
+     * @return a {@link Generator} that generates a random boolean value based on the given chance
+     */
+    public static Generator<Boolean> ofBoolean(double chance) {
+        if (Double.isInfinite(chance)) {
+            throw new IllegalArgumentException("chance must be finite");
+        }
+        if (Double.isNaN(chance)) {
+            throw new IllegalArgumentException("chance must not be NaN");
+        }
+        if (chance < 0 || chance > 1) {
+            throw new IllegalArgumentException("chance must be in the range [0, 1]");
+        }
+        return random -> random.nextDouble() <= chance;
     }
 
     /**
@@ -70,8 +94,8 @@ public final class Generators {
      * @param values the array of values to generate from
      * @return a {@link PoolGenerator} that generates random {@code byte} elements of the given array
      */
-    public static PoolGenerator<Byte> ofBytePool(byte... values) {
-        return ofBytePool(false, values);
+    public static PoolGenerator<Byte> ofBytes(byte... values) {
+        return ofBytes(false, values);
     }
 
     /**
@@ -82,10 +106,10 @@ public final class Generators {
      * all elements again.
      * </p>
      * @param useBundle whether to generate elements in a bundle or not
-     * @param values the array of values to generate from
+     * @param values    the array of values to generate from
      * @return a {@link PoolGenerator} that generates random {@code byte} elements of the given array
      */
-    public static PoolGenerator<Byte> ofBytePool(boolean useBundle, byte... values) {
+    public static PoolGenerator<Byte> ofBytes(boolean useBundle, byte... values) {
         return new DefaultPoolGenerator<>(values, useBundle);
     }
 
@@ -97,10 +121,10 @@ public final class Generators {
      * all elements again.
      * </p>
      * @param useBundle whether to generate elements in a bundle or not
-     * @param values the list of values to generate from
+     * @param values    the collection of values to generate from
      * @return a {@link PoolGenerator} that generates random {@code byte} elements of the given list
      */
-    public static PoolGenerator<Byte> ofBytePool(boolean useBundle, List<Byte> values) {
+    public static PoolGenerator<Byte> ofBytes(boolean useBundle, Collection<Byte> values) {
         return new DefaultPoolGenerator<>(values, useBundle);
     }
 
@@ -144,8 +168,8 @@ public final class Generators {
      * @param values the array of values to generate from
      * @return a {@link PoolGenerator} that generates random {@code char} elements of the given array
      */
-    public static PoolGenerator<Character> ofCharPool(char... values) {
-        return ofCharPool(false, values);
+    public static PoolGenerator<Character> ofChars(char... values) {
+        return ofChars(false, values);
     }
 
     /**
@@ -156,10 +180,10 @@ public final class Generators {
      * all elements again.
      * </p>
      * @param useBundle whether to generate elements in a bundle or not
-     * @param values the array of values to generate from
+     * @param values    the array of values to generate from
      * @return a {@link PoolGenerator} that generates random {@code char} elements of the given array
      */
-    public static PoolGenerator<Character> ofCharPool(boolean useBundle, char... values) {
+    public static PoolGenerator<Character> ofChars(boolean useBundle, char... values) {
         return new DefaultPoolGenerator<>(values, useBundle);
     }
 
@@ -171,10 +195,10 @@ public final class Generators {
      * all elements again.
      * </p>
      * @param useBundle whether to generate elements in a bundle or not
-     * @param values the list of values to generate from
+     * @param values    the collection of values to generate from
      * @return a {@link PoolGenerator} that generates random {@code char} elements of the given list
      */
-    public static PoolGenerator<Character> ofCharPool(boolean useBundle, List<Character> values) {
+    public static PoolGenerator<Character> ofChars(boolean useBundle, Collection<Character> values) {
         return new DefaultPoolGenerator<>(values, useBundle);
     }
 
@@ -210,8 +234,8 @@ public final class Generators {
      * @param values the array of values to generate from
      * @return a {@link PoolGenerator} that generates random {@code short} elements of the given array
      */
-    public static PoolGenerator<Short> ofShortPool(short... values) {
-        return ofShortPool(false, values);
+    public static PoolGenerator<Short> ofShorts(short... values) {
+        return ofShorts(false, values);
     }
 
     /**
@@ -222,10 +246,10 @@ public final class Generators {
      * all elements again.
      * </p>
      * @param useBundle whether to generate elements in a bundle or not
-     * @param values the array of values to generate from
+     * @param values    the array of values to generate from
      * @return a {@link PoolGenerator} that generates random {@code short} elements of the given array
      */
-    public static PoolGenerator<Short> ofShortPool(boolean useBundle, short... values) {
+    public static PoolGenerator<Short> ofShorts(boolean useBundle, short... values) {
         return new DefaultPoolGenerator<>(values, useBundle);
     }
 
@@ -237,10 +261,10 @@ public final class Generators {
      * all elements again.
      * </p>
      * @param useBundle whether to generate elements in a bundle or not
-     * @param values the list of values to generate from
+     * @param values    the collection of values to generate from
      * @return a {@link PoolGenerator} that generates random {@code short} elements of the given list
      */
-    public static PoolGenerator<Short> ofShortPool(boolean useBundle, List<Short> values) {
+    public static PoolGenerator<Short> ofShorts(boolean useBundle, Collection<Short> values) {
         return new DefaultPoolGenerator<>(values, useBundle);
     }
 
@@ -276,8 +300,8 @@ public final class Generators {
      * @param values the array of values to generate from
      * @return a {@link PoolGenerator} that generates random {@code int} elements of the given array
      */
-    public static PoolGenerator<Integer> ofIntPool(int... values) {
-        return ofIntPool(false, values);
+    public static PoolGenerator<Integer> ofInts(int... values) {
+        return ofInts(false, values);
     }
 
     /**
@@ -288,10 +312,10 @@ public final class Generators {
      * all elements again.
      * </p>
      * @param useBundle whether to generate elements in a bundle or not
-     * @param values the array of values to generate from
+     * @param values    the array of values to generate from
      * @return a {@link PoolGenerator} that generates random {@code int} elements of the given array
      */
-    public static PoolGenerator<Integer> ofIntPool(boolean useBundle, int... values) {
+    public static PoolGenerator<Integer> ofInts(boolean useBundle, int... values) {
         return new DefaultPoolGenerator<>(values, useBundle);
     }
 
@@ -303,10 +327,10 @@ public final class Generators {
      * all elements again.
      * </p>
      * @param useBundle whether to generate elements in a bundle or not
-     * @param values the list of values to generate from
+     * @param values    the collection of values to generate from
      * @return a {@link PoolGenerator} that generates random {@code int} elements of the given list
      */
-    public static PoolGenerator<Integer> ofIntPool(boolean useBundle, List<Integer> values) {
+    public static PoolGenerator<Integer> ofInts(boolean useBundle, Collection<Integer> values) {
         return new DefaultPoolGenerator<>(values, useBundle);
     }
 
@@ -342,8 +366,8 @@ public final class Generators {
      * @param values the array of values to generate from
      * @return a {@link PoolGenerator} that generates random {@code long} elements of the given array
      */
-    public static PoolGenerator<Long> ofLongPool(long... values) {
-        return ofLongPool(false, values);
+    public static PoolGenerator<Long> ofLongs(long... values) {
+        return ofLongs(false, values);
     }
 
     /**
@@ -354,10 +378,10 @@ public final class Generators {
      * all elements again.
      * </p>
      * @param useBundle whether to generate elements in a bundle or not
-     * @param values the array of values to generate from
+     * @param values    the array of values to generate from
      * @return a {@link PoolGenerator} that generates random {@code long} elements of the given array
      */
-    public static PoolGenerator<Long> ofLongPool(boolean useBundle, long... values) {
+    public static PoolGenerator<Long> ofLongs(boolean useBundle, long... values) {
         return new DefaultPoolGenerator<>(values, useBundle);
     }
 
@@ -369,10 +393,10 @@ public final class Generators {
      * all elements again.
      * </p>
      * @param useBundle whether to generate elements in a bundle or not
-     * @param values the list of values to generate from
+     * @param values    the collection of values to generate from
      * @return a {@link PoolGenerator} that generates random {@code long} elements of the given list
      */
-    public static PoolGenerator<Long> ofLongPool(boolean useBundle, List<Long> values) {
+    public static PoolGenerator<Long> ofLongs(boolean useBundle, Collection<Long> values) {
         return new DefaultPoolGenerator<>(values, useBundle);
     }
 
@@ -413,8 +437,8 @@ public final class Generators {
      * @param values the array of values to generate from
      * @return a {@link PoolGenerator} that generates random {@code float} elements of the given array
      */
-    public static PoolGenerator<Float> ofFloatPool(float... values) {
-        return ofFloatPool(false, values);
+    public static PoolGenerator<Float> ofFloats(float... values) {
+        return ofFloats(false, values);
     }
 
     /**
@@ -425,10 +449,10 @@ public final class Generators {
      * all elements again.
      * </p>
      * @param useBundle whether to generate elements in a bundle or not
-     * @param values the array of values to generate from
+     * @param values    the array of values to generate from
      * @return a {@link PoolGenerator} that generates random {@code float} elements of the given array
      */
-    public static PoolGenerator<Float> ofFloatPool(boolean useBundle, float... values) {
+    public static PoolGenerator<Float> ofFloats(boolean useBundle, float... values) {
         return new DefaultPoolGenerator<>(values, useBundle);
     }
 
@@ -440,10 +464,10 @@ public final class Generators {
      * all elements again.
      * </p>
      * @param useBundle whether to generate elements in a bundle or not
-     * @param values the list of values to generate from
+     * @param values    the collection of values to generate from
      * @return a {@link PoolGenerator} that generates random {@code float} elements of the given list
      */
-    public static PoolGenerator<Float> ofFloatPool(boolean useBundle, List<Float> values) {
+    public static PoolGenerator<Float> ofFloats(boolean useBundle, Collection<Float> values) {
         return new DefaultPoolGenerator<>(values, useBundle);
     }
 
@@ -484,8 +508,8 @@ public final class Generators {
      * @param values the array of values to generate from
      * @return a {@link PoolGenerator} that generates random {@code double} elements of the given array
      */
-    public static PoolGenerator<Double> ofDoublePool(double... values) {
-        return ofDoublePool(false, values);
+    public static PoolGenerator<Double> ofDoubles(double... values) {
+        return ofDoubles(false, values);
     }
 
     /**
@@ -497,10 +521,10 @@ public final class Generators {
      * </p>
      *
      * @param useBundle whether to generate elements in a bundle or not
-     * @param values the array of values to generate from
+     * @param values    the array of values to generate from
      * @return a {@link PoolGenerator} that generates random {@code double} elements of the given array
      */
-    public static PoolGenerator<Double> ofDoublePool(boolean useBundle, double... values) {
+    public static PoolGenerator<Double> ofDoubles(boolean useBundle, double... values) {
         return new DefaultPoolGenerator<>(values, useBundle);
     }
 
@@ -512,10 +536,10 @@ public final class Generators {
      * all elements again.
      * </p>
      * @param useBundle whether to generate elements in a bundle or not
-     * @param values the list of values to generate from
+     * @param values    the collection of values to generate from
      * @return a {@link PoolGenerator} that generates random {@code double} elements of the given list
      */
-    public static PoolGenerator<Double> ofDoublePool(boolean useBundle, List<Double> values) {
+    public static PoolGenerator<Double> ofDoubles(boolean useBundle, Collection<Double> values) {
         return new DefaultPoolGenerator<>(values, useBundle);
     }
 
@@ -539,7 +563,7 @@ public final class Generators {
      * The given {@link Generator} is used to generate characters.
      * </p>
      *
-     * @param length the length of the strings to generate
+     * @param length    the length of the strings to generate
      * @param generator the generator of characters
      * @return a {@link Generator} that generates all possible strings of the given length
      */
@@ -582,8 +606,8 @@ public final class Generators {
      * @param values the list of possible values to generate from
      * @return a {@link PoolGenerator} that generates random strings from the given values
      */
-    public static PoolGenerator<String> ofStringPool(String... values) {
-        return ofStringPool(false, values);
+    public static PoolGenerator<String> ofStrings(String... values) {
+        return ofStrings(false, values);
     }
 
     /**
@@ -594,10 +618,10 @@ public final class Generators {
      * all strings again.
      * </p>
      * @param useBundle whether to generate strings in a bundle or not
-     * @param values the array of values to generate from
+     * @param values    the array of values to generate from
      * @return a {@link PoolGenerator} that generates random strings from the given values
      */
-    public static PoolGenerator<String> ofStringPool(boolean useBundle, String... values) {
+    public static PoolGenerator<String> ofStrings(boolean useBundle, String... values) {
         return new DefaultPoolGenerator<>(values, useBundle);
     }
 
@@ -609,10 +633,10 @@ public final class Generators {
      * all strings again.
      * </p>
      * @param useBundle whether to generate strings in a bundle or not
-     * @param values the list of values to generate from
+     * @param values    the collection of values to generate from
      * @return a {@link PoolGenerator} that generates random strings from the given values
      */
-    public static PoolGenerator<String> ofStringPool(boolean useBundle, List<String> values) {
+    public static PoolGenerator<String> ofStrings(boolean useBundle, Collection<String> values) {
         return new DefaultPoolGenerator<>(values, useBundle);
     }
 
@@ -623,6 +647,7 @@ public final class Generators {
      * </p>
      *
      * @param enumClass the enum class
+     * @param <T>       the enum type
      * @return a {@link Generator} that generates random enum constants of the given enum class
      */
     public static <T extends Enum<T>> Generator<T> ofEnum(Class<T> enumClass) {
@@ -636,8 +661,9 @@ public final class Generators {
      * {@link Generator} is used to generate a random index of the enum constant.
      * </p>
      *
-     * @param enumClass the enum class
+     * @param enumClass    the enum class
      * @param intGenerator the generator of indices
+     * @param <T>          the enum type
      * @return a {@link Generator} that generates random enum constants of the given enum class
      */
     public static <T extends Enum<T>> Generator<T> ofEnum(Class<T> enumClass, Generator<Integer> intGenerator) {
@@ -647,11 +673,12 @@ public final class Generators {
     /**
      * Creates a {@link PoolGenerator} that generates random enum constants of the given enum values.
      * @param values the enum values to generate from
+     * @param <T>    the enum type
      * @return a {@link PoolGenerator} that generates random enum constants of the given enum values
      */
     @SafeVarargs
-    public static <T extends Enum<T>> PoolGenerator<T> ofEnumPool(T... values) {
-        return ofEnumPool(false, values);
+    public static <T extends Enum<T>> PoolGenerator<T> ofEnums(T... values) {
+        return ofEnums(false, values);
     }
 
     /**
@@ -662,11 +689,12 @@ public final class Generators {
      * all enum constants again.
      * </p>
      * @param useBundle whether to generate enum constants in a bundle or not
-     * @param values the array of enum values to generate from
+     * @param values    the array of enum values to generate from
+     * @param <T>       the enum type
      * @return a {@link PoolGenerator} that generates random enum constants of the given enum values
      */
     @SuppressWarnings("unchecked")
-    public static <T extends Enum<T>> PoolGenerator<T> ofEnumPool(boolean useBundle, T... values) {
+    public static <T extends Enum<T>> PoolGenerator<T> ofEnums(boolean useBundle, T... values) {
         if (Objects.requireNonNull(values, "values").length == 0) {
             throw new IllegalArgumentException("Empty values array");
         }
@@ -681,10 +709,11 @@ public final class Generators {
      * all enum constants again.
      * </p>
      * @param useBundle whether to generate enum constants in a bundle or not
-     * @param values the list of enum values to generate from
+     * @param values    the collection of enum values to generate from
+     * @param <T>       the enum type
      * @return a {@link PoolGenerator} that generates random enum constants of the given enum values
      */
-    public static <T extends Enum<T>> PoolGenerator<T> ofEnumPool(boolean useBundle, List<T> values) {
+    public static <T extends Enum<T>> PoolGenerator<T> ofEnums(boolean useBundle, Collection<T> values) {
         if (Objects.requireNonNull(values).isEmpty()) {
             throw new IllegalArgumentException("Empty values list");
         }
@@ -699,8 +728,10 @@ public final class Generators {
      * </p>
      *
      * @param elementClass the class of the elements of the arrays to generate
-     * @param generator the generator of elements
-     * @param length the length of the arrays to generate
+     * @param generator    the generator of elements
+     * @param length       the length of the arrays to generate
+     * @param <T>          the element type
+     * @param <A>          the array type
      * @return a {@link Generator} that generates random arrays of the given element class with the given length
      */
     public static <T, A> Generator<A> ofArray(Class<T> elementClass, Generator<T> generator, int length) {
@@ -715,8 +746,9 @@ public final class Generators {
      * </p>
      *
      * @param elementType the class of the elements of the lists to generate
-     * @param generator the generator of elements
-     * @param length the length of the lists to generate
+     * @param generator   the generator of elements
+     * @param length      the length of the lists to generate
+     * @param <T>         the element type
      * @return a {@link Generator} that generates random lists of the given element type with the given length
      */
     public static <T> Generator<List<T>> ofList(Class<T> elementType, Generator<T> generator, int length) {
@@ -731,8 +763,9 @@ public final class Generators {
      * </p>
      *
      * @param elementType the class of the elements of the sets to generate
-     * @param generator the generator of elements
-     * @param length the maximum length of the sets to generate
+     * @param generator   the generator of elements
+     * @param length      the maximum length of the sets to generate
+     * @param <T>         the element type
      * @return a {@link Generator} that generates random sets of the given element type with the given length
      */
     public static <T> Generator<Set<T>> ofSet(Class<T> elementType, Generator<T> generator, int length) {
@@ -747,12 +780,14 @@ public final class Generators {
      * present in the map, the given {@link BiFunction} is used to resolve the duplicate.
      * </p>
      *
-     * @param keyType the class of the keys of the maps to generate
-     * @param valueType the class of the values of the maps to generate
-     * @param keyGenerator the generator of keys
-     * @param valueGenerator the generator of values
+     * @param keyType           the class of the keys of the maps to generate
+     * @param valueType         the class of the values of the maps to generate
+     * @param keyGenerator      the generator of keys
+     * @param valueGenerator    the generator of values
      * @param duplicateResolver the function to resolve duplicate keys
-     * @param length the maximum length of the maps to generate
+     * @param length            the maximum length of the maps to generate
+     * @param <K>               the key type
+     * @param <V>               the value type
      * @return a {@link Generator} that generates random maps of the given key and value types
      */
     public static <K, V> Generator<Map<K, V>> ofMap(Class<K> keyType, Class<V> valueType, Generator<K> keyGenerator,
@@ -769,6 +804,7 @@ public final class Generators {
      * </p>
      *
      * @param clazz the class to generate
+     * @param <T>   the class type
      * @return a {@link Generator} that generates random objects of the given class
      *
      * @see ObjectGenerator
@@ -778,45 +814,194 @@ public final class Generators {
     }
 
     /**
-     * Creates a {@link PoolGenerator} that generates random elements of the given array.
-     * @param values the array of values to generate from
-     * @return a {@link PoolGenerator} that generates random elements of the given array
+     * Constantly returns {@code true}.
      */
-    @SafeVarargs
-    public static <T> PoolGenerator<T> ofPool(T... values) {
-        return ofPool(false, values);
+    public static final BooleanSupplier ALWAYS = () -> true;
+
+    /**
+     * Creates a {@link PoolItem} that generates random values of the given generator.
+     * <p>
+     * The returned {@link PoolItem} has a weight of 1 and a condition that always returns {@code true}.
+     * </p>
+     *
+     * @param generator the generator to generate random values with
+     * @param <T>       the generator type
+     * @return a {@link PoolItem} that generates random values of the given generator
+     */
+    public static <T> PoolItem<T> item(Generator<T> generator) {
+        return new PoolItemImpl<>(1L, generator, ALWAYS);
     }
 
     /**
-     * Creates a {@link PoolGenerator} that generates random elements of the given array.
+     * Creates a {@link PoolItem} that generates random values of the given generator.
+     * <p>
+     * The returned {@link PoolItem} has a weight of the given weight and a condition that always returns {@code true}.
+     * </p>
+     *
+     * @param generator the generator to generate random values with
+     * @param weight    the weight of this item in the pool, must be in range {@code [0; 0xffffffffL]}
+     * @param <T>       the generator type
+     * @return a {@link PoolItem} that generates random values of the given generator
+     */
+    public static <T> PoolItem<T> item(Generator<T> generator, long weight) {
+        return new PoolItemImpl<>(weight, generator, ALWAYS);
+    }
+
+    /**
+     * Creates a {@link PoolItem} that generates random values of the given generator.
+     * <p>
+     * The returned {@link PoolItem} has a weight of 1 and a condition of the given condition.
+     * </p>
+     *
+     * @param generator the generator to generate random values with
+     * @param condition the condition that must be satisfied in order for this item to be used
+     * @param <T>       the generator type
+     * @return a {@link PoolItem} that generates random values of the given generator
+     */
+    public static <T> PoolItem<T> item(Generator<T> generator, BooleanSupplier condition) {
+        return new PoolItemImpl<>(1L, generator, condition);
+    }
+
+    /**
+     * Creates a {@link PoolItem} that generates random values of the given generator.
+     * <p>
+     * The returned {@link PoolItem} has a weight of the given weight and a condition of the given condition.
+     * </p>
+     *
+     * @param generator the generator to generate random values with
+     * @param weight    the weight of this item in the pool, must be in range {@code [0; 0xffffffffL]}
+     * @param condition the condition that must be satisfied in order for this item to be used
+     * @param <T>       the generator type
+     * @return a {@link PoolItem} that generates random values of the given generator
+     */
+    public static <T> PoolItem<T> item(Generator<T> generator, long weight, BooleanSupplier condition) {
+        return new PoolItemImpl<>(weight, generator, condition);
+    }
+
+    /**
+     * Creates a {@link PoolGenerator} that generates random elements from the given values.
      * <p>
      * If parameter {@code useBundle} is {@code true}, then created generator will generate
      * elements without repeats until it reaches the end of the array. Then it will generate
      * all elements again.
      * </p>
-     * @param useBundle whether to generate elements in a bundle or not
-     * @param values the array of values to generate from
-     * @return a {@link PoolGenerator} that generates random elements of the given array
+     * @param useBundle whether to generate strings in a bundle or not
+     * @param values    the array of values to generate from
+     * @param <T>       the generator type
+     * @return a {@link PoolGenerator} that generates random strings from the given values
      */
-    @SuppressWarnings("unchecked")
+    @SafeVarargs
     public static <T> PoolGenerator<T> ofPool(boolean useBundle, T... values) {
         return new DefaultPoolGenerator<>(values, useBundle);
     }
 
     /**
-     * Creates a {@link PoolGenerator} that generates random elements of the given list.
+     * Creates a {@link PoolGenerator} that generates random elements from the given values.
      * <p>
      * If parameter {@code useBundle} is {@code true}, then created generator will generate
      * elements without repeats until it reaches the end of the list. Then it will generate
      * all elements again.
      * </p>
-     *
-     * @param useBundle whether to generate elements in a bundle or not
-     * @param list the list of values to generate from
-     * @return a {@link PoolGenerator} that generates random elements of the given list
+     * @param useBundle whether to generate strings in a bundle or not
+     * @param values    the collection of values to generate from
+     * @param <T>       the generator type
+     * @return a {@link PoolGenerator} that generates random strings from the given values
      */
-    public static <T> PoolGenerator<T> ofPool(boolean useBundle, List<T> list) {
-        return new DefaultPoolGenerator<>(list, useBundle);
+    public static <T> PoolGenerator<T> ofPool(boolean useBundle, Collection<T> values) {
+        return new DefaultPoolGenerator<>(values, useBundle);
+    }
+
+    /**
+     * Creates a {@link PoolGenerator} that generates random values from the given values.
+     * <p>
+     * The returned {@link PoolGenerator} will generate random values from the given ones in strict order.
+     * </p>
+     *
+     * @param values the values to generate random values from
+     * @param <T>    the generator type
+     * @return a {@link PoolGenerator} that generates random values from the given values
+     */
+    @SafeVarargs
+    public static <T> PoolGenerator<T> ofOrderedPool(T... values) {
+        return new OrderedPoolGenerator<>(values);
+    }
+
+    /**
+     * Creates a {@link PoolGenerator} that generates random values from the given values.
+     * <p>
+     * The returned {@link PoolGenerator} will generate random values from the given ones in strict order.
+     * </p>
+     *
+     * @param values the values to generate random values from
+     * @param <T>    the generator type
+     * @return a {@link PoolGenerator} that generates random values from the given values
+     */
+    public static <T> PoolGenerator<T> ofOrderedPool(Collection<T> values) {
+        return new OrderedPoolGenerator<>(values);
+    }
+
+    /**
+     * Creates a {@link PoolGenerator} that generates random values from the given values.
+     * <p>
+     * The returned {@link PoolGenerator} will generate random values from the given ones in a weighted manner.
+     * The weight of each value is taken from the {@link PoolItem} it is wrapped in. This pool returns 1 on 0
+     * values at a time.
+     * </p>
+     *
+     * @param values the values to generate random values from
+     * @param <T>    the generator type
+     * @return a {@link PoolGenerator} that generates random values from the given values
+     */
+    @SafeVarargs
+    public static <T> PoolGenerator<Optional<T>> ofWeightedPool(Generator<T>... values) {
+        return new WeightedPoolGenerator<>(values);
+    }
+
+    /**
+     * Creates a {@link PoolGenerator} that generates random values from the given values.
+     * <p>
+     * The returned {@link PoolGenerator} will generate random values from the given ones in a weighted manner.
+     * The weight of each value is taken from the {@link PoolItem} it is wrapped in. This pool returns 1 on 0
+     * values at a time.
+     * </p>
+     *
+     * @param values the values to generate random values from
+     * @param <T>    the generator type
+     * @return a {@link PoolGenerator} that generates random values from the given values
+     */
+    public static <T> PoolGenerator<Optional<T>> ofWeightedPool(Collection<Generator<T>> values) {
+        return new WeightedPoolGenerator<>(values);
+    }
+
+    /**
+     * Creates a {@link PoolGenerator} that generates random values from the given values.
+     * <p>
+     * The returned {@link PoolGenerator} will generate random values from the given values in a weighted manner.
+     * The weight of each value is taken from the {@link PoolItem} it is wrapped in. This pool returns a list of all
+     * values that were generated. If values contains collections then their elements will be extracted.
+     * </p>
+     *
+     * @param values the values to generate random values from
+     * @return a {@link PoolGenerator} that generates random values from the given values
+     */
+    @SuppressWarnings("unchecked")
+    public static PoolGenerator<List<Object>> ofMultiplePool(Generator<?>... values) {
+        return new MultiplePoolGenerator((Generator<Object>[]) values);
+    }
+
+    /**
+     * Creates a {@link PoolGenerator} that generates random values from the given values.
+     * <p>
+     * The returned {@link PoolGenerator} will generate random values from the given values in a weighted manner.
+     * The weight of each value is taken from the {@link PoolItem} it is wrapped in. This pool returns a list of all
+     * values that were generated. If values contains collections then their elements will be extracted.
+     * </p>
+     *
+     * @param values the values to generate random values from
+     * @return a {@link PoolGenerator} that generates random values from the given values
+     */
+    public static PoolGenerator<List<Object>> ofMultiplePool(Collection<Generator<?>> values) {
+        return new MultiplePoolGenerator(values);
     }
 
     /**
@@ -826,6 +1011,7 @@ public final class Generators {
      * </p>
      *
      * @param value the value to generate
+     * @param <E>   the type of the value
      * @return a generator that generates the given value
      */
     public static <E> Generator<E> ofValue(E value) {
@@ -1075,29 +1261,47 @@ public final class Generators {
         }
     }
 
+    private static Class<?> commonSuperClass(Class<?> a, Class<?> b) {
+        if (a == null) return b;
+        while (!a.isAssignableFrom(b)) {
+            a = a.getSuperclass();
+        }
+        return a;
+    }
+
+    private static Class<?> getCollectionElementType(Collection<?> collection) {
+        Objects.requireNonNull(collection);
+        if (collection.isEmpty()) {
+            throw new IllegalArgumentException("collection must have at least 1 element");
+        }
+        Class<?> elementType = null;
+        for (Object element : collection) {
+            if (element != null) {
+                elementType = commonSuperClass(elementType, element.getClass());
+            }
+        }
+        if (elementType == null) {
+            throw new IllegalArgumentException("collection must contain at least one non-null element");
+        }
+        return elementType;
+    }
+
     static class DefaultPoolGenerator<T> implements PoolGenerator<T> {
         private final int length;
         private final Object pool;
         private int bundleIndex;
 
-        public DefaultPoolGenerator(List<T> list, boolean useBundle) {
-            Objects.requireNonNull(list);
-            length = list.size();
+        public DefaultPoolGenerator(Collection<T> values, boolean useBundle) {
+            Objects.requireNonNull(values);
+            length = values.size();
             if (length < 2) {
                 throw new IllegalArgumentException("pool must have at least 2 elements");
             }
-            Class<?> elementType = null;
-            for (T element : list) {
-                if (element != null) {
-                    elementType = commonSuperClass(elementType, element.getClass());
-                }
-            }
-            if (elementType == null) {
-                throw new IllegalArgumentException("list must contain at least one non-null element");
-            }
-            this.pool = Array.newInstance(elementType, list.size());
-            for (int i = 0; i < list.size(); i++) {
-                Array.set(pool, i, list.get(i));
+            Class<?> elementType = getCollectionElementType(values);
+            this.pool = Array.newInstance(elementType, values.size());
+            var itr = values.iterator();
+            for (int i = 0; itr.hasNext(); i++) {
+                Array.set(pool, i, itr.next());
             }
             bundleIndex = useBundle ? 0 : -1;
         }
@@ -1116,16 +1320,6 @@ public final class Generators {
 
         @SuppressWarnings("unchecked")
         @Override
-        public List<T> getPool() {
-            Object[] array = new Object[Array.getLength(pool)];
-            for (int i = 0; i < length; i++) {
-                array[i] = Array.get(pool, i);
-            }
-            return (List<T>) List.of(array);
-        }
-
-        @SuppressWarnings("unchecked")
-        @Override
         public T generate(Random random) {
             if (bundleIndex != -1) {
                 int nextIndex = random.nextInt(length - bundleIndex) + bundleIndex;
@@ -1139,12 +1333,241 @@ public final class Generators {
             return (T) Array.get(pool, random.nextInt(length));
         }
 
-        private static Class<?> commonSuperClass(Class<?> a, Class<?> b) {
-            if (a == null) return b;
-            while (!a.isAssignableFrom(b)) {
-                a = a.getSuperclass();
+        @Override
+        public int size() {
+            return length;
+        }
+
+        @Override
+        public PoolItem<?> get(int index) {
+            Objects.checkIndex(index, length);
+            return item(ofValue(Array.get(pool, index)));
+        }
+
+        @Override
+        public Iterator<PoolItem<?>> iterator() {
+            return new Iterator<>() {
+                int current;
+
+                @Override
+                public boolean hasNext() {
+                    return current < length;
+                }
+
+                @Override
+                public PoolItem<?> next() {
+                    return get(current++);
+                }
+            };
+        }
+    }
+
+    static class OrderedPoolGenerator<T> implements PoolGenerator<T> {
+        private final int length;
+        private final Object pool;
+        private int current;
+
+        public OrderedPoolGenerator(Collection<T> values) {
+            Objects.requireNonNull(values);
+            length = values.size();
+            Class<?> elementType = getCollectionElementType(values);
+            this.pool = Array.newInstance(elementType, length);
+            var itr = values.iterator();
+            for (int i = 0; itr.hasNext(); i++) {
+                Array.set(pool, i, itr.next());
             }
-            return a;
+        }
+
+        @SuppressWarnings("SuspiciousSystemArraycopy")
+        public OrderedPoolGenerator(Object pool) {
+            Objects.requireNonNull(pool, "values");
+            length = Array.getLength(pool);
+            if (length == 0) {
+                throw new IllegalArgumentException("pool must have at least 1 element");
+            }
+            this.pool = Array.newInstance(pool.getClass().getComponentType(), length);
+            System.arraycopy(pool, 0, this.pool, 0, length);
+        }
+
+        @Override
+        public int size() {
+            return length;
+        }
+
+        @Override
+        public PoolItem<?> get(int index) {
+            return item(ofValue(Array.get(pool, index)));
+        }
+
+        @SuppressWarnings("unchecked")
+        @Override
+        public T generate(Random random) {
+            Object next = Array.get(pool, current);
+            current = ++current % length;
+            return (T) next;
+        }
+
+        @Override
+        public Iterator<PoolItem<?>> iterator() {
+            return new Iterator<>() {
+                int current;
+
+                @Override
+                public boolean hasNext() {
+                    return current < length;
+                }
+
+                @Override
+                public PoolItem<?> next() {
+                    return get(current++);
+                }
+            };
+        }
+    }
+
+    static class PoolItemImpl<T> implements PoolItem<T> {
+        private static final long MAX_WEIGHT = 0xffffffffL;
+
+        private final long weight;
+        private final Generator<T> generator;
+        private final BooleanSupplier condition;
+
+        public PoolItemImpl(long weight, Generator<T> generator, BooleanSupplier condition) {
+            if (weight < 0) {
+                throw new IllegalArgumentException("weight must not be negative");
+            }
+            if (weight > MAX_WEIGHT) {
+                throw new IllegalArgumentException("weight must not be greater than " + MAX_WEIGHT);
+            }
+            this.weight = weight;
+            this.generator = Objects.requireNonNull(generator);
+            this.condition = Objects.requireNonNull(condition);
+        }
+
+        @Override
+        public long weight() {
+            return weight;
+        }
+
+        @Override
+        public boolean test() {
+            return condition.getAsBoolean();
+        }
+
+        @Override
+        public T generate(Random random) {
+            return generator.generate(random);
+        }
+    }
+
+    static abstract class AbstractPoolGenerator<T, R> implements PoolGenerator<R> {
+        protected final List<PoolItem<T>> pool;
+
+        protected AbstractPoolGenerator(Generator<T>[] values) {
+            Objects.requireNonNull(values);
+            for (int i = 0; i < values.length; i++) {
+                Generator<T> item = values[i];
+                Objects.requireNonNull(item, "item at index " + i);
+            }
+            pool = Arrays.stream(values).map(g -> g instanceof PoolItem<T> i ? i : item(g)).toList();
+        }
+
+        protected AbstractPoolGenerator(Collection<Generator<T>> values) {
+            Objects.requireNonNull(values);
+            int index = 0;
+            for (Generator<T> item : values) {
+                Objects.requireNonNull(item, "item at index " + index);
+                index++;
+            }
+            pool = values.stream().map(g -> g instanceof PoolItem<T> i ? i : item(g)).toList();
+        }
+
+        @Override
+        public Iterator<PoolItem<?>> iterator() {
+            return new Iterator<>() {
+                int current;
+
+                @Override
+                public boolean hasNext() {
+                    return current < pool.size();
+                }
+
+                @Override
+                public PoolItem<?> next() {
+                    return pool.get(current++);
+                }
+            };
+        }
+
+        @Override
+        public int size() {
+            return pool.size();
+        }
+
+        @Override
+        public PoolItem<T> get(int index) {
+            return pool.get(index);
+        }
+    }
+
+    static class WeightedPoolGenerator<T> extends AbstractPoolGenerator<T, Optional<T>> {
+        public WeightedPoolGenerator(Generator<T>[] values) {
+            super(values);
+        }
+        
+        public WeightedPoolGenerator(Collection<Generator<T>> values) {
+            super(values);
+        }
+
+        @Override
+        public Optional<T> generate(Random random) {
+            AtomicLong totalWeight = new AtomicLong();
+            List<PoolItem<T>> items = new ArrayList<>(pool.size());
+            pool.parallelStream().filter(PoolItem::test).forEachOrdered(item -> {
+                        totalWeight.addAndGet(item.weight());
+                        items.add(item);
+                    });
+            AtomicLong next = new AtomicLong(random.nextLong(totalWeight.get()));
+            return items.stream().dropWhile(item -> {
+                long difference = next.get() - item.weight();
+                long cmp = item.weight() - next.getAndSet(difference);
+                return cmp > 0;
+            }).findFirst().map(item -> item.generate(random));
+        }
+    }
+
+    static class MultiplePoolGenerator extends AbstractPoolGenerator<Object, List<Object>> {
+        public MultiplePoolGenerator(Generator<Object>[] values) {
+            super(values);
+        }
+
+        public MultiplePoolGenerator(Collection<Generator<?>> values) {
+            super(cast(values));
+        }
+
+        @Override
+        public List<Object> generate(Random random) {
+            List<Object> list = new ArrayList<>(pool.size());
+            for (PoolItem<?> item : pool) {
+                if (item.test()) {
+                    Object next = item.generate(random);
+                    if (next instanceof Collection<?> c) {
+                        list.addAll(c);
+                    } else {
+                        list.add(next);
+                    }
+                }
+            }
+            return list;
+        }
+
+        @SuppressWarnings("unchecked")
+        private static Collection<Generator<Object>> cast(Collection<Generator<?>> values) {
+            ArrayList<Generator<Object>> list = new ArrayList<>(values.size());
+            for (Generator<?> item : values) {
+                list.add((Generator<Object>) item);
+            }
+            return list;
         }
     }
 }

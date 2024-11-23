@@ -15,10 +15,9 @@
  *
  */
 
-package org.system_false.random;
+package io.github.system_false.random;
 
 import org.junit.jupiter.api.Test;
-import org.system_false.random.generator.*;
 
 import java.util.*;
 
@@ -297,6 +296,31 @@ public class RandomTest {
 
     @Test
     void mapTest() {
+        var mapGenerator = Generators.ofMap(String.class, Integer.class, Generators.ofPool(true, "a", "b", "c", "d", "e"),
+                Generators.ofInt(1, 10), Integer::sum, 5);
+        Random random = new Random();
+        for (int i = 0; i < 1000; i++) {
+            Map<String, Integer> map = assertDoesNotThrow(() -> mapGenerator.generate(random), "failed to generate map");
+            assertEquals(5, map.size(), "map size is not 5");
+            assertTrue(map.containsKey("a"), "map does not contain 'a'");
+            assertTrue(map.containsKey("b"), "map does not contain 'b'");
+            assertTrue(map.containsKey("c"), "map does not contain 'c'");
+            assertTrue(map.containsKey("d"), "map does not contain 'd'");
+            assertTrue(map.containsKey("e"), "map does not contain 'e'");
+            for (var entry : map.entrySet()) {
+                assertTrue(entry.getValue() >= 1 && entry.getValue() <= 10, "map value is not between 1 and 10: " + entry.getValue());
+            }
+        }
+    }
 
+    @Test
+    void orderedPoolTest() {
+        Integer[] pool = new Integer[] { 5, 3, 8, 5, 2, 9 };
+        var poolGenerator = Generators.ofOrderedPool(pool);
+        Random random = new Random();
+        for (int i = 0; i < 1000; i++) {
+            Integer next = assertDoesNotThrow(() -> poolGenerator.generate(random), "failed to generate integer");
+            assertEquals(pool[i % pool.length], next, "value " + next + " is not in right order");
+        }
     }
 }

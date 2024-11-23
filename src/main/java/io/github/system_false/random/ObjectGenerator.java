@@ -15,7 +15,7 @@
  *
  */
 
-package org.system_false.random.generator;
+package io.github.system_false.random;
 
 import java.lang.reflect.*;
 import java.util.*;
@@ -43,7 +43,6 @@ import java.util.*;
  *     }
  * }}
  * </pre>
- * </p>
  * <p>
  * For configuration of randomization from a limited number of values annotation parameters
  * {@code <type>Values} should be used. If this parameters contains non-zero count of values
@@ -60,7 +59,6 @@ import java.util.*;
  *     }
  * }}
  * </pre>
- * </p>
  * <p>
  * For configuration of randomization of arrays parameters of array type,
  * {@code arrayMinLength} and {@code arrayMaxLength} should be used. Example:
@@ -76,7 +74,6 @@ import java.util.*;
  *     }
  * }}
  * </pre>
- * </p>
  * <p>
  * For configuration of randomization of lists, sets and maps parameters of collection
  * type, {@code containerMinSize} and {@code containerMaxSize} should be used. Example:
@@ -110,7 +107,6 @@ import java.util.*;
  * }
  * }
  * </pre>
- * </p>
  * <p>
  * If some fields should not be generated randomly parameter {@code random} should be set to false.
  * To customize default values of primitive types and enums parameter {@code default<type>}. Example:
@@ -148,7 +144,6 @@ import java.util.*;
  *     }
  * }}
  * </pre>
- * </p>
  * <p>
  * In addition to fields, this generator allows you to generate arguments for constructors
  * and methods. To use method or constructor for creating objects, they must be annotated
@@ -182,7 +177,7 @@ import java.util.*;
  *     }
  * }}
  * </pre>
- * </p>
+ * @param <T> the type of objects that this generator generates
  */
 public class ObjectGenerator<T> implements Generator<T> {
     /**
@@ -250,6 +245,7 @@ public class ObjectGenerator<T> implements Generator<T> {
      * </p>
      *
      * @param type the type
+     * @param <T>  the type of the class
      * @return the class that the given type represents
      *
      * @throws GenerationException if the type is not a class
@@ -312,7 +308,7 @@ public class ObjectGenerator<T> implements Generator<T> {
      * </p>
      *
      * @param creators the list that constructors and methods will be added to
-     * @param clazz the class to extract the constructors and methods from
+     * @param clazz    the class to extract the constructors and methods from
      */
     protected static void extractCreators(List<Executable> creators, Class<?> clazz) {
         List<Constructor<?>> constructorsList = Arrays.stream(clazz.getDeclaredConstructors())
@@ -347,7 +343,7 @@ public class ObjectGenerator<T> implements Generator<T> {
      *
      * @param creators the list of constructors and methods to return a random
      *                 element from
-     * @param random the random object to use to generate the random number
+     * @param random   the random object to use to generate the random number
      * @return a random constructor or static method from the given list
      *
      * @throws GenerationException if the given list is empty
@@ -394,6 +390,18 @@ public class ObjectGenerator<T> implements Generator<T> {
         }
     }
 
+    /**
+     * Generates a random object of the given type using the given generator class.
+     * <p>
+     * The generator class must implement the {@link Generator} interface. It must
+     * also have an empty constructor which is accessible.
+     * </p>
+     *
+     * @param generator the class to use to generate the random object
+     * @param random    the random object to use to generate the random object
+     * @param <T>       the type of the random object
+     * @return a random object of the given type
+     */
     @SuppressWarnings("unchecked")
     protected static <T> T generate(Class<?> generator, Random random) {
         if (!Generator.class.isAssignableFrom(generator)) {
@@ -425,10 +433,11 @@ public class ObjectGenerator<T> implements Generator<T> {
      * constructor which is accessible.
      * </p>
      *
-     * @param type the type of the random object to generate
-     * @param value the random value to use to generate the random object
-     * @param depth the maximum depth of object generation
+     * @param type   the type of the random object to generate
+     * @param value  the random value to use to generate the random object
+     * @param depth  the maximum depth of object generation
      * @param random the random object to use to generate the random object
+     * @param <T>    the type of the random object
      * @return a random object of the given type
      *
      * @throws GenerationException if the given generator class does not implement
@@ -472,10 +481,11 @@ public class ObjectGenerator<T> implements Generator<T> {
      * this method returns null.
      * </p>
      *
-     * @param type the type of the random object to generate
-     * @param value the random value to use to generate the random object
-     * @param depth the maximum depth of object generation
+     * @param type   the type of the random object to generate
+     * @param value  the random value to use to generate the random object
+     * @param depth  the maximum depth of object generation
      * @param random the random object to use to generate the random object
+     * @param <T>    the type of the random object
      * @return a random object of the given type
      *
      * @throws GenerationException if the given generator class does not implement
@@ -567,7 +577,7 @@ public class ObjectGenerator<T> implements Generator<T> {
      * as specified by the annotations on the given parameters.
      *
      * @param params the parameters for which to generate random values
-     * @param value the annotation that specifies the depth of the generated values
+     * @param value  the annotation that specifies the depth of the generated values
      * @param random a source of randomness
      * @return an array of randomly generated values, one for each parameter
      */
@@ -590,7 +600,7 @@ public class ObjectGenerator<T> implements Generator<T> {
      * is chosen from the range specified by the {@link RandomValue}, or from the whole range
      * of possible byte values if the annotation is not present.
      *
-     * @param value the annotation that specifies the range of values, or {@code null}
+     * @param value  the annotation that specifies the range of values, or {@code null}
      * @param random a source of randomness
      * @return a randomly generated byte
      */
@@ -610,7 +620,7 @@ public class ObjectGenerator<T> implements Generator<T> {
      * character is chosen from the range specified by the {@link RandomValue}, or from the
      * whole range of possible character values if the annotation is not present.
      *
-     * @param value the annotation that specifies the range of values, or {@code null}
+     * @param value  the annotation that specifies the range of values, or {@code null}
      * @param random a source of randomness
      * @return a randomly generated character
      */
@@ -630,7 +640,7 @@ public class ObjectGenerator<T> implements Generator<T> {
      * short is chosen from the range specified by the {@link RandomValue}, or from the
      * whole range of possible short values if the annotation is not present.
      *
-     * @param value the annotation that specifies the range of values, or {@code null}
+     * @param value  the annotation that specifies the range of values, or {@code null}
      * @param random a source of randomness
      * @return a randomly generated short
      */
@@ -650,7 +660,7 @@ public class ObjectGenerator<T> implements Generator<T> {
      * int is chosen from the range specified by the {@link RandomValue}, or from the
      * whole range of possible int values if the annotation is not present.
      *
-     * @param value the annotation that specifies the range of values, or {@code null}
+     * @param value  the annotation that specifies the range of values, or {@code null}
      * @param random a source of randomness
      * @return a randomly generated int
      */
@@ -670,7 +680,7 @@ public class ObjectGenerator<T> implements Generator<T> {
      * long is chosen from the range specified by the {@link RandomValue}, or from the
      * whole range of possible long values if the annotation is not present.
      *
-     * @param value the annotation that specifies the range of values, or {@code null}
+     * @param value  the annotation that specifies the range of values, or {@code null}
      * @param random a source of randomness
      * @return a randomly generated long
      */
@@ -693,7 +703,7 @@ public class ObjectGenerator<T> implements Generator<T> {
      * The range parameters are validated to ensure that the minimum value is less than or
      * equal to the maximum value, and that both values are finite and not NaN.
      * </p>
-     * @param value the annotation that specifies the range of values, or {@code null}
+     * @param value  the annotation that specifies the range of values, or {@code null}
      * @param random a source of randomness
      * @return a randomly generated float
      */
@@ -716,7 +726,7 @@ public class ObjectGenerator<T> implements Generator<T> {
      * The range parameters are validated to ensure that the minimum value is less than or
      * equal to the maximum value, and that both values are finite and not NaN.
      * </p>
-     * @param value the annotation that specifies the range of values, or {@code null}
+     * @param value  the annotation that specifies the range of values, or {@code null}
      * @param random a source of randomness
      * @return a randomly generated double
      */
@@ -741,7 +751,7 @@ public class ObjectGenerator<T> implements Generator<T> {
      * The range parameters are validated to ensure that the minimum length is less than
      * or equal to the maximum length, and that both lengths are non-negative.
      * </p>
-     * @param value the annotation that specifies the range of values, or {@code null}
+     * @param value  the annotation that specifies the range of values, or {@code null}
      * @param random a source of randomness
      * @return a randomly generated string
      */
@@ -765,8 +775,8 @@ public class ObjectGenerator<T> implements Generator<T> {
      * it is used to generate a random enum value. Otherwise, all the enum values
      * of the given enum class are used.
      * </p>
-     * @param clazz the enum class to generate the enum value from
-     * @param value the annotation that specifies the range of values, or {@code null}
+     * @param clazz  the enum class to generate the enum value from
+     * @param value  the annotation that specifies the range of values, or {@code null}
      * @param random a source of randomness
      * @return a randomly generated enum value
      */
@@ -793,8 +803,8 @@ public class ObjectGenerator<T> implements Generator<T> {
      * The generated record is then constructed using the default constructor
      * of the record class.
      * </p>
-     * @param clazz the record class to generate the record from
-     * @param value the annotation that specifies the range of values, or {@code null}
+     * @param clazz  the record class to generate the record from
+     * @param value  the annotation that specifies the range of values, or {@code null}
      * @param random a source of randomness
      * @return a randomly generated record
      */
@@ -838,12 +848,12 @@ public class ObjectGenerator<T> implements Generator<T> {
      * Elements in arrays are generated using {@code <type>Values},
      * {@code <type>MinValues} and {@code <type>MaxValues} parameters.
      * </p>
-     * @param type the type of the array
-     * @param value the annotation that specifies the range of values, or {@code null}
-     * @param random a source of randomness
+     * @param type     the type of the array
+     * @param value    the annotation that specifies the range of values, or {@code null}
+     * @param random   a source of randomness
      * @param minCount the minimum size of the array
      * @param maxCount the maximum size of the array
-     * @param depth the object depth of the random generation
+     * @param depth    the object depth of the random generation
      * @return a randomly generated array
      */
     private static Object randomArray(Type type, RandomValue value, Random random, int minCount, int maxCount, int depth) {
@@ -864,13 +874,13 @@ public class ObjectGenerator<T> implements Generator<T> {
      * generate the list and then the method is called to add all elements
      * to the generated list.
      * </p>
-     * @param listType the type of the list
-     * @param value the annotation that specifies the range of values, or {@code null}
-     * @param random a source of randomness
-     * @param minSize the minimum size of the list
-     * @param maxSize the maximum size of the list
+     * @param listType    the type of the list
+     * @param value       the annotation that specifies the range of values, or {@code null}
+     * @param random      a source of randomness
+     * @param minSize     the minimum size of the list
+     * @param maxSize     the maximum size of the list
      * @param elementType the type of the elements in the list
-     * @param depth the object depth of the random generation
+     * @param depth       the object depth of the random generation
      * @return a randomly generated list
      */
     @SuppressWarnings("unchecked")
@@ -920,13 +930,13 @@ public class ObjectGenerator<T> implements Generator<T> {
      * generate the set and then the method is called to add all elements
      * to the generated set.
      * </p>
-     * @param setType the type of the set
-     * @param value the annotation that specifies the range of values, or {@code null}
-     * @param random a source of randomness
-     * @param minSize the minimum size of the set
-     * @param maxSize the maximum size of the set
+     * @param setType     the type of the set
+     * @param value       the annotation that specifies the range of values, or {@code null}
+     * @param random      a source of randomness
+     * @param minSize     the minimum size of the set
+     * @param maxSize     the maximum size of the set
      * @param elementType the type of the elements in the set
-     * @param depth the object depth of the random generation
+     * @param depth       the object depth of the random generation
      * @return a randomly generated set
      */
     @SuppressWarnings({"unchecked", "rawtypes"})
@@ -976,14 +986,14 @@ public class ObjectGenerator<T> implements Generator<T> {
      * generate the map and then the method is called to add all elements
      * to the generated map.
      * </p>
-     * @param mapType the type of the map
-     * @param value the annotation that specifies the range of values, or {@code null}
-     * @param random a source of randomness
-     * @param minSize the minimum size of the map
-     * @param maxSize the maximum size of the map
-     * @param keyType the type of the keys in the map
+     * @param mapType   the type of the map
+     * @param value     the annotation that specifies the range of values, or {@code null}
+     * @param random    a source of randomness
+     * @param minSize   the minimum size of the map
+     * @param maxSize   the maximum size of the map
+     * @param keyType   the type of the keys in the map
      * @param valueType the type of the values in the map
-     * @param depth the object depth of the random generation
+     * @param depth     the object depth of the random generation
      * @return a randomly generated map
      */
     @SuppressWarnings({"unchecked", "rawtypes"})
@@ -1027,9 +1037,10 @@ public class ObjectGenerator<T> implements Generator<T> {
      * the random value. The type of the generated value is then converted to the given
      * {@code type} using the constructor with the least number of parameters.
      * </p>
-     * @param type the type of the value
-     * @param value the random value parameter
+     * @param type   the type of the value
+     * @param value  the random value parameter
      * @param random the random object
+     * @param <T>    the type of the generated value
      * @return a randomly generated value
      */
     @SuppressWarnings({"unchecked", "rawtypes"})
@@ -1100,8 +1111,9 @@ public class ObjectGenerator<T> implements Generator<T> {
      * given random value is null, the default value is determined by the
      * class of the given type.
      * </p>
-     * @param type the type
+     * @param type  the type
      * @param value the random value parameter
+     * @param <T>   the type
      * @return the default value for the given type and random value
      */
     @SuppressWarnings({"rawtypes", "unchecked"})

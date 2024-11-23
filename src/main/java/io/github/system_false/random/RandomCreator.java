@@ -15,7 +15,7 @@
  *
  */
 
-package org.system_false.random.generator;
+package io.github.system_false.random;
 
 import java.lang.annotation.ElementType;
 import java.lang.annotation.Retention;

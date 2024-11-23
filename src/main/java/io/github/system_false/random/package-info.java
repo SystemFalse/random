@@ -17,8 +17,8 @@
 
 /**
  * Package with classes for generation random numbers, enums, records and any other java objects.
- * It contains main interface {@link org.system_false.random.generator.Generator} and its
- * implementations. For simple creation instances of this interface {@link org.system_false.random.generator.Generators}
+ * It contains main interface {@link io.github.system_false.random.Generator} and its
+ * implementations. For simple creation instances of this interface {@link io.github.system_false.random.Generators}
  * should be used.
  */
-package org.system_false.random.generator;
+package io.github.system_false.random;
