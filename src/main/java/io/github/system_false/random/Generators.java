@@ -887,6 +887,7 @@ public final class Generators {
      * </p>
      * @param useBundle whether to generate strings in a bundle or not
      * @param values    the array of values to generate from
+     * @param <T>       the generator type
      * @return a {@link PoolGenerator} that generates random strings from the given values
      */
     @SafeVarargs
@@ -903,6 +904,7 @@ public final class Generators {
      * </p>
      * @param useBundle whether to generate strings in a bundle or not
      * @param values    the collection of values to generate from
+     * @param <T>       the generator type
      * @return a {@link PoolGenerator} that generates random strings from the given values
      */
     public static <T> PoolGenerator<T> ofPool(boolean useBundle, Collection<T> values) {
