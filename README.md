@@ -5,7 +5,7 @@ This is small library for generating random things. It was designed to be used i
 interface. It contains only 1 method to implement: `<T> generate(java.util.Random)`.
 
 ## Usage
-Class `org.system_false.random.generator.Generators` provides static methods for creating generators of all primitives,
+Class `io.github.system_false.random.Generators` provides static methods for creating generators of all primitives,
 strings, arrays, lists, sets and maps. To create any instance of the `Generator`, you need to invoke one of methods
 named as `of<type>()`.
 ```java

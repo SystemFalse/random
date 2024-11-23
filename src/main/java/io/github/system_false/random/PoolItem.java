@@ -15,7 +15,7 @@
  *
  */
 
-package org.system_false.random.generator;
+package io.github.system_false.random;
 
 /**
  * A marker interface for pool items. A pool item is a generator which assigns a non-negative weight to each value it
@@ -28,8 +28,6 @@ public interface PoolItem<G> extends Generator<G> {
      * The weight of the generator. The weight is used to control the probability of this generator
      * being selected. The probability of this generator being selected is the weight divided by the
      * sum of the weights of all generators with the same type.
-     *
-     * @apiNote weight should not be negative and more that {@code 0xffffffffL}
      *
      * @return the weight of the generator
      */

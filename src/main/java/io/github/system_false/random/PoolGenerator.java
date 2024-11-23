@@ -15,7 +15,7 @@
  *
  */
 
-package org.system_false.random.generator;
+package io.github.system_false.random;
 
 /**
  * Common interface for all pool generators. Implementations of this interface generates

@@ -15,10 +15,13 @@
  *
  */
 
-package org.system_false.random;
+package io.github.system_false.random;
 
+import io.github.system_false.random.Generator;
+import io.github.system_false.random.Generators;
+import io.github.system_false.random.RandomCreator;
+import io.github.system_false.random.RandomValue;
 import org.junit.jupiter.api.Test;
-import org.system_false.random.generator.*;
 
 import java.util.*;
 

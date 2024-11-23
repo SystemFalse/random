@@ -15,7 +15,7 @@
  *
  */
 
-package org.system_false.random.generator;
+package io.github.system_false.random;
 
 import java.lang.reflect.Array;
 import java.math.BigInteger;
@@ -42,7 +42,6 @@ import java.util.function.Function;
  *     <li>{@link #generateSet(Random, Class, Generator, int)}</li>
  *     <li>{@link #generateMap(Random, Class, Class, Generator, Generator, BiFunction, int)}</li>
  * </ul>
- * </p>
  *
  * @param <T> the type of the generated value
  */
@@ -97,7 +96,7 @@ public interface Generator<T> {
      * The given min and max values are used to generate a random byte value.
      * </p>
      *
-     * @param random the PRNG or RNG to use
+     * @param random   the PRNG or RNG to use
      * @param minValue the smallest possible value, inclusive
      * @param maxValue the largest possible value, inclusive
      * @return a random byte
@@ -119,7 +118,7 @@ public interface Generator<T> {
      * The given min and max values are used to generate a random character value.
      * </p>
      *
-     * @param random the PRNG or RNG to use
+     * @param random   the PRNG or RNG to use
      * @param minValue the smallest possible value, inclusive
      * @param maxValue the largest possible value, inclusive
      * @return a random character
@@ -141,7 +140,7 @@ public interface Generator<T> {
      * The given min and max values are used to generate a random short value.
      * </p>
      *
-     * @param random the PRNG or RNG to use
+     * @param random   the PRNG or RNG to use
      * @param minValue the smallest possible value, inclusive
      * @param maxValue the largest possible value, inclusive
      * @return a random short value
@@ -163,7 +162,7 @@ public interface Generator<T> {
      * The given min and max values are used to generate a random int value.
      * </p>
      *
-     * @param random the PRNG or RNG to use
+     * @param random   the PRNG or RNG to use
      * @param minValue the smallest possible value, inclusive
      * @param maxValue the largest possible value, inclusive
      * @return a random int value
@@ -185,7 +184,7 @@ public interface Generator<T> {
      * The given min and max values are used to generate a random long value.
      * </p>
      *
-     * @param random the PRNG or RNG to use
+     * @param random   the PRNG or RNG to use
      * @param minValue the smallest possible value, inclusive
      * @param maxValue the largest possible value, inclusive
      * @return a random long value
@@ -212,7 +211,7 @@ public interface Generator<T> {
      * They must be in range of 0 and 1.
      * </p>
      *
-     * @param random the PRNG or RNG to use
+     * @param random   the PRNG or RNG to use
      * @param minValue the smallest possible value, inclusive
      * @param maxValue the largest possible value, inclusive
      * @return a random float value
@@ -241,7 +240,7 @@ public interface Generator<T> {
      * They must be in range of 0 and 1.
      * </p>
      *
-     * @param random the PRNG or RNG to use
+     * @param random   the PRNG or RNG to use
      * @param minValue the smallest possible value, inclusive
      * @param maxValue the largest possible value, inclusive
      * @return a random double value
@@ -270,9 +269,9 @@ public interface Generator<T> {
      * The given {@link Generator} is used to generate characters.
      * </p>
      *
-     * @param random the PRNG or RNG to use
-     * @param minLength the smallest possible length, inclusive
-     * @param maxLength the largest possible length, inclusive
+     * @param random        the PRNG or RNG to use
+     * @param minLength     the smallest possible length, inclusive
+     * @param maxLength     the largest possible length, inclusive
      * @param charGenerator the generator of characters
      * @return a random string
      *
@@ -301,9 +300,10 @@ public interface Generator<T> {
      * {@link Generator} is used to generate the index.
      * </p>
      *
-     * @param random the PRNG or RNG to use
-     * @param enumClass the enum class
+     * @param random       the PRNG or RNG to use
+     * @param enumClass    the enum class
      * @param intGenerator the generator of indices
+     * @param <T>          the type of the generated enum constant
      * @return a random enum constant
      *
      * @throws NullPointerException if {@code random}, {@code enumClass} or {@code generator} is {@code null}
@@ -332,10 +332,12 @@ public interface Generator<T> {
      * The given {@link Generator} is used to generate a random element for each element in the array.
      * </p>
      *
-     * @param random the PRNG or RNG to use
+     * @param random      the PRNG or RNG to use
      * @param elementType the element class
-     * @param generator the generator of elements
-     * @param length the length of the array
+     * @param generator   the generator of elements
+     * @param length      the length of the array
+     * @param <T>         the type of the elements in the array
+     * @param <A>         the type of the array
      * @return a random array
      *
      * @throws NullPointerException if {@code random}, {@code elementType} or {@code generator} is {@code null}
@@ -371,10 +373,11 @@ public interface Generator<T> {
      * }
      * </pre>
      *
-     * @param random the PRNG or RNG to use
+     * @param random      the PRNG or RNG to use
      * @param elementType the element class
-     * @param generator the generator of elements
-     * @param length the length of the list
+     * @param generator   the generator of elements
+     * @param length      the length of the list
+     * @param <T>         the type of the elements in the list
      * @return a random list
      *
      * @throws NullPointerException if {@code random}, {@code elementType} or {@code generator} is {@code null}
@@ -409,10 +412,11 @@ public interface Generator<T> {
      * }
      * </pre>
      *
-     * @param random the PRNG or RNG to use
+     * @param random      the PRNG or RNG to use
      * @param elementType the element class
-     * @param generator the generator of elements
-     * @param length the maximum length of the set
+     * @param generator   the generator of elements
+     * @param length      the maximum length of the set
+     * @param <T>         the type of the elements in the set
      * @return a random set
      *
      * @throws NullPointerException if {@code random}, {@code elementType} or {@code generator} is {@code null}
@@ -461,6 +465,8 @@ public interface Generator<T> {
      * @param valueGenerator    the generator of values
      * @param duplicateResolver the function to resolve duplicate keys
      * @param length            the maximum length of the map
+     * @param <K>               the type of the keys in the map
+     * @param <V>               the type of the values in the map
      * @return a random map
      *
      * @throws NullPointerException if {@code random}, {@code keyType}, {@code valueType}, {@code keyGenerator}, {@code valueGenerator}
