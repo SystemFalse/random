@@ -4,6 +4,16 @@ This is small library for generating random things. It was designed to be used i
 `Generators`, which provides a lot of static methods for creating generators. All generators implement the `Generator`
 interface. It contains only 1 method to implement: `<T> generate(java.util.Random)`.
 
+## Installation
+### Maven
+```xml
+<dependency>
+    <groupId>io.github.systemfalse</groupId>
+    <artifactId>random-lib</artifactId>
+    <version>1.2.0</version>
+</dependency>
+```
+
 ## Usage
 Class `io.github.system_false.random.Generators` provides static methods for creating generators of all primitives,
 strings, arrays, lists, sets and maps. To create any instance of the `Generator`, you need to invoke one of methods
