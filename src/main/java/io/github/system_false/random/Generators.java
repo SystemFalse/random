@@ -22,22 +22,56 @@ import java.util.*;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.BiFunction;
 import java.util.function.BooleanSupplier;
+import java.util.function.Supplier;
+import java.util.random.RandomGenerator;
+import java.util.random.RandomGeneratorFactory;
 
 /**
  * Utility class for creating instances of {@link Generator} interface.
  */
 public final class Generators {
+    private static Supplier<RandomGenerator> GENERATOR_FACTORY = RandomGeneratorFactory.of("L128X1024MixRandom")::create;
+
     /**
      * Private constructor to prevent instantiation.
      */
     private Generators() {}
 
     /**
+     * Sets the random number generator factory.
+     * @param factory the random number generator factory
+     *
+     * @throws NullPointerException if factory is {@code null}
+     */
+    public static void setGeneratorFactory(RandomGeneratorFactory<?> factory) {
+        Objects.requireNonNull(factory, "factory");
+        GENERATOR_FACTORY = factory::create;
+    }
+
+    /**
+     * Sets the random number generator supplier.
+     * @param supplier the random number generator supplier
+     *
+     * @throws NullPointerException if supplier is {@code null}
+     */
+    public static void setGeneratorFactory(Supplier<RandomGenerator> supplier) {
+        GENERATOR_FACTORY = Objects.requireNonNull(supplier, "supplier");
+    }
+
+    /**
+     * Gets the default random number generator.
+     * @return the default random number generator
+     */
+    public static RandomGenerator getRandom() {
+        return GENERATOR_FACTORY.get();
+    }
+
+    /**
      * Creates a {@link Generator} that generates random {@code boolean} values.
      * @return a {@link Generator} that generates random {@code boolean} values
      */
     public static Generator<Boolean> ofBoolean() {
-        return Random::nextBoolean;
+        return ofBoolean(0.5);
     }
 
     /**
@@ -1046,7 +1080,7 @@ public final class Generators {
         }
 
         @Override
-        public Byte generate(Random random) {
+        public Byte generate(RandomGenerator random) {
             return Generator.generateByte(random, minValue, maxValue);
         }
     }
@@ -1079,7 +1113,7 @@ public final class Generators {
         }
 
         @Override
-        public Character generate(Random random) {
+        public Character generate(RandomGenerator random) {
             return Generator.generateChar(random, minValue, maxValue);
         }
     }
@@ -1112,7 +1146,7 @@ public final class Generators {
         }
 
         @Override
-        public Short generate(Random random) {
+        public Short generate(RandomGenerator random) {
             return Generator.generateShort(random, minValue, maxValue);
         }
     }
@@ -1145,7 +1179,7 @@ public final class Generators {
         }
 
         @Override
-        public Integer generate(Random random) {
+        public Integer generate(RandomGenerator random) {
             return Generator.generateInt(random, minValue, maxValue);
         }
     }
@@ -1178,7 +1212,7 @@ public final class Generators {
         }
 
         @Override
-        public Long generate(Random random) {
+        public Long generate(RandomGenerator random) {
             return Generator.generateLong(random, minValue, maxValue);
         }
     }
@@ -1217,7 +1251,7 @@ public final class Generators {
         }
 
         @Override
-        public Float generate(Random random) {
+        public Float generate(RandomGenerator random) {
             return Generator.generateFloat(random, minValue, maxValue);
         }
     }
@@ -1256,7 +1290,7 @@ public final class Generators {
         }
 
         @Override
-        public Double generate(Random random) {
+        public Double generate(RandomGenerator random) {
             return Generator.generateDouble(random, minValue, maxValue);
         }
     }
@@ -1320,7 +1354,7 @@ public final class Generators {
 
         @SuppressWarnings("unchecked")
         @Override
-        public T generate(Random random) {
+        public T generate(RandomGenerator random) {
             if (bundleIndex != -1) {
                 int nextIndex = random.nextInt(length - bundleIndex) + bundleIndex;
                 T next = (T) Array.get(pool, nextIndex);
@@ -1401,7 +1435,7 @@ public final class Generators {
 
         @SuppressWarnings("unchecked")
         @Override
-        public T generate(Random random) {
+        public T generate(RandomGenerator random) {
             Object next = Array.get(pool, current);
             current = ++current % length;
             return (T) next;
@@ -1455,7 +1489,7 @@ public final class Generators {
         }
 
         @Override
-        public T generate(Random random) {
+        public T generate(RandomGenerator random) {
             return generator.generate(random);
         }
     }
@@ -1520,7 +1554,7 @@ public final class Generators {
         }
 
         @Override
-        public Optional<T> generate(Random random) {
+        public Optional<T> generate(RandomGenerator random) {
             AtomicLong totalWeight = new AtomicLong();
             List<PoolItem<T>> items = new ArrayList<>(pool.size());
             pool.parallelStream().filter(PoolItem::test).forEachOrdered(item -> {
@@ -1546,7 +1580,7 @@ public final class Generators {
         }
 
         @Override
-        public List<Object> generate(Random random) {
+        public List<Object> generate(RandomGenerator random) {
             List<Object> list = new ArrayList<>(pool.size());
             for (PoolItem<?> item : pool) {
                 if (item.test()) {
