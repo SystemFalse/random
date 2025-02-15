@@ -6,4 +6,5 @@
  */
 module random_lib {
     exports io.github.system_false.random;
+    exports io.github.system_false.random.builder;
 }

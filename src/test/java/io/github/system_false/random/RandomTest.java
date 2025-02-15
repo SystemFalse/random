@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024 SystemFalse.
+ * Copyright (C) 2025 SystemFalse.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -321,6 +321,58 @@ public class RandomTest {
         for (int i = 0; i < 1000; i++) {
             Integer next = assertDoesNotThrow(() -> poolGenerator.generate(random), "failed to generate integer");
             assertEquals(pool[i % pool.length], next, "value " + next + " is not in right order");
+        }
+    }
+
+    static class UserInfo {
+        UUID id;
+        String name;
+        short age;
+
+        @SuppressWarnings("unused")
+        public void setName(String name) {
+            this.name = name;
+        }
+
+        public void setAge(short age) {
+            this.age = age;
+        }
+    }
+
+    @Test
+    void objectClassTest() {
+        var generator = Generators.builder(UserInfo.class)
+                .field("id", UUID::randomUUID)
+                .field("name", Generators.ofString(5, Generators.ofASCIIChar()))
+                .field("age", Generators.ofShort((short) 100))
+                .build();
+        Random random = new Random();
+        for (int i = 0; i < 1000; i++) {
+            UserInfo info = generator.generate(random);
+            assertNotNull(info, "null object");
+            assertNotNull(info.id, "null id");
+            assertNotNull(info.name, "null name");
+            assertEquals(5, info.name.length(), "wrong length of name: " + info.name.length());
+            assertTrue(info.age >= 0 && info.age < 100, "wrong age: " + info.age);
+        }
+    }
+
+    record Color(int red, int green, int blue) {}
+
+    @Test
+    void recordTest() {
+        var generator = Generators.recordBuilder(Color.class)
+                .field("red", Generators.ofInt(0, 255))
+                .field("green", Generators.ofInt(0, 255))
+                .field("blue", Generators.ofInt(0, 255))
+                .build();
+        Random random = new Random();
+        for (int i = 0; i < 1000; i++) {
+            Color color = generator.generate(random);
+            assertNotNull(color, "null object");
+            assertTrue(color.red >= 0 && color.red <= 255, "wrong red: " + color.red);
+            assertTrue(color.green >= 0 && color.green <= 255, "wrong green: " + color.green);
+            assertTrue(color.blue >= 0 && color.blue <= 255, "wrong blue: " + color.blue);
         }
     }
 }

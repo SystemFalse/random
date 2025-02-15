@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024 SystemFalse.
+ * Copyright (C) 2025 SystemFalse.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -17,11 +17,10 @@
 
 package io.github.system_false.random;
 
-import java.lang.invoke.MethodHandle;
-import java.lang.invoke.MethodHandles;
+import io.github.system_false.random.builder.ObjectGeneratorBuilder;
+import io.github.system_false.random.builder.RecordGeneratorBuilder;
+
 import java.lang.reflect.Array;
-import java.lang.reflect.Constructor;
-import java.lang.reflect.Method;
 import java.util.*;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.BiFunction;
@@ -852,6 +851,34 @@ public final class Generators {
     }
 
     /**
+     * Returns a new {@link ObjectGeneratorBuilder} for the given class.
+     * <p>
+     * The builder is used to create a generator of the given class.
+     * </p>
+     * @param clazz class of the object
+     *
+     * @return a new {@link ObjectGeneratorBuilder}
+     * @param <T> the class type
+     */
+    public static <T> ObjectGeneratorBuilder<T> builder(Class<T> clazz) {
+        return new ObjectGeneratorBuilder<>(clazz);
+    }
+
+    /**
+     * Returns a new {@link RecordGeneratorBuilder} for the given class.
+     * <p>
+     * The builder is used to create a generator of the given class.
+     * </p>
+     * @param clazz class of the record
+     *
+     * @return a new {@link RecordGeneratorBuilder}
+     * @param <T> the class type
+     */
+    public static <T> RecordGeneratorBuilder<T> recordBuilder(Class<T> clazz) {
+        return new RecordGeneratorBuilder<>(clazz);
+    }
+
+    /**
      * Constantly returns {@code true}.
      */
     public static final BooleanSupplier ALWAYS = () -> true;
@@ -1054,223 +1081,6 @@ public final class Generators {
      */
     public static <E> Generator<E> ofValue(E value) {
         return random -> value;
-    }
-
-    private static void checkArguments(Generator<?>... arguments) {
-        Objects.requireNonNull(arguments, "arguments");
-        for (int i = 0; i < arguments.length; i++) {
-            Objects.requireNonNull(arguments[i], "argument at index " + i);
-        }
-    }
-
-    private static void checkArguments(List<Generator<?>> arguments) {
-        Objects.requireNonNull(arguments, "arguments");
-        for (int i = 0, argumentsSize = arguments.size(); i < argumentsSize; i++) {
-            Generator<?> argument = arguments.get(i);
-            Objects.requireNonNull(argument, "argument at index " + i);
-        }
-    }
-
-    /**
-     * Creates a {@link Generator} that returns result of invoking the given constructor with random generated
-     * arguments. Arguments must match with constructor parameters. This method accepts only public constructors.
-     * To invoke private constructors, use {@link #ofDeclaredConstructor(Constructor, Generator[])} instead.
-     *
-     * @param constructor constructor to be invoked
-     * @param arguments   arguments to be passed to the constructor
-     * @param <E>         the type of the generated value
-     * @return a {@link Generator} that returns result of invoking the given constructor
-     * @throws IllegalAccessException if the given constructor is not accessible from the current class
-     */
-    public static <E> Generator<E> ofConstructor(Constructor<E> constructor, Generator<?>... arguments)
-            throws IllegalAccessException {
-        Objects.requireNonNull(constructor, "constructor");
-        try {
-            return ofHandle(asHandle(constructor, true), arguments);
-        } catch (NoSuchMethodException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    /**
-     * Creates a {@link Generator} that returns result of invoking the given constructor with random generated
-     * arguments. Arguments must match with constructor parameters. This method accepts any constructors that
-     * this module can access.
-     *
-     * @param constructor constructor to be invoked
-     * @param arguments   arguments to be passed to the constructor
-     * @param <E>         the type of the generated value
-     * @return a {@link Generator} that returns result of invoking the given constructor
-     * @throws IllegalAccessException if the given constructor is not accessible from the current class
-     */
-    public static <E> Generator<E> ofDeclaredConstructor(Constructor<E> constructor, Generator<?>... arguments)
-            throws IllegalAccessException {
-        Objects.requireNonNull(constructor, "constructor");
-        try {
-            return ofHandle(asHandle(constructor, false), arguments);
-        } catch (NoSuchMethodException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    /**
-     * Creates a {@link Generator} that returns result of invoking the given constructor with random generated
-     * arguments. Arguments must match with constructor parameters. This method accepts only public constructors.
-     * To invoke private constructors, use {@link #ofDeclaredConstructor(Constructor, List)} instead.
-     *
-     * @param constructor constructor to be invoked
-     * @param arguments   lift of arguments to be passed to the constructor
-     * @param <E>         the type of the generated value
-     * @return a {@link Generator} that returns result of invoking the given constructor
-     * @throws IllegalAccessException if the given constructor is not accessible from the current class
-     */
-    public static <E> Generator<E> ofConstructor(Constructor<E> constructor, List<Generator<?>> arguments)
-            throws IllegalAccessException {
-        Objects.requireNonNull(constructor, "constructor");
-        try {
-            return ofHandle(asHandle(constructor, true), arguments);
-        } catch (NoSuchMethodException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    /**
-     * Creates a {@link Generator} that returns result of invoking the given constructor with random generated
-     * arguments. Arguments must match with constructor parameters. This method accepts any constructors that
-     * this module can access.
-     *
-     * @param constructor constructor to be invoked
-     * @param arguments   list of arguments to be passed to the constructor
-     * @param <E>         the type of the generated value
-     * @return a {@link Generator} that returns result of invoking the given constructor
-     * @throws IllegalAccessException if the given constructor is not accessible from the current class
-     */
-    public static <E> Generator<E> ofDeclaredConstructor(Constructor<E> constructor, List<Generator<?>> arguments)
-            throws IllegalAccessException {
-        Objects.requireNonNull(constructor, "constructor");
-        try {
-            return ofHandle(asHandle(constructor, false), arguments);
-        } catch (NoSuchMethodException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    private static MethodHandle asHandle(Constructor<?> constructor, boolean publicOnly) throws IllegalAccessException,
-            NoSuchMethodException {
-        return (publicOnly ? MethodHandles.publicLookup() : MethodHandles.lookup()).unreflectConstructor(constructor);
-    }
-
-    /**
-     * Creates a {@link Generator} that returns result of invoking the given method with random generated
-     * arguments. Arguments must match with method parameters. This method accepts only public methods.
-     * To invoke private methods, use {@link #ofDeclaredMethod(Method, Generator[])} instead.
-     *
-     * @param method    method to be invoked
-     * @param arguments arguments to be passed to the method
-     * @param <E>       the type of the generated value
-     * @return a {@link Generator} that returns result of invoking the given method
-     * @throws IllegalAccessException if the given method is not accessible from the current class
-     */
-    public static <E> Generator<E> ofMethod(Method method, Generator<?>... arguments) throws IllegalAccessException {
-        Objects.requireNonNull(method, "method");
-        try {
-            return ofHandle(asHandle(method, true), arguments);
-        } catch (NoSuchMethodException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    /**
-     * Creates a {@link Generator} that returns result of invoking the given method with random generated
-     * arguments. Arguments must match with method parameters. This method accepts any methods that
-     * this module can access.
-     *
-     * @param method    method to be invoked
-     * @param arguments arguments to be passed to the method
-     * @param <E>       the type of the generated value
-     * @return a {@link Generator} that returns result of invoking the given method
-     * @throws IllegalAccessException if the given method is not accessible from the current class
-     */
-    public static <E> Generator<E> ofDeclaredMethod(Method method, Generator<?>... arguments)
-            throws IllegalAccessException {
-        Objects.requireNonNull(method, "method");
-        try {
-            return ofHandle(asHandle(method, false), arguments);
-        } catch (NoSuchMethodException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    /**
-     * Creates a {@link Generator} that returns result of invoking the given method with random generated
-     * arguments. Arguments must match with method parameters. This method accepts only public methods.
-     * To invoke private methods, use {@link #ofDeclaredMethod(Method, Generator[])} instead.
-     *
-     * @param method    method to be invoked
-     * @param arguments list of arguments to be passed to the method
-     * @param <E>       the type of the generated value
-     * @return a {@link Generator} that returns result of invoking the given method
-     * @throws IllegalAccessException if the given method is not accessible from the current class
-     */
-    public static <E> Generator<E> ofMethod(Method method, List<Generator<?>> arguments) throws IllegalAccessException {
-        Objects.requireNonNull(method, "method");
-        try {
-            return ofHandle(asHandle(method, true), arguments);
-        } catch (NoSuchMethodException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    /**
-     * Creates a {@link Generator} that returns result of invoking the given method with random generated
-     * arguments. Arguments must match with method parameters. This method accepts any methods that
-     * this module can access.
-     *
-     * @param method    method to be invoked
-     * @param arguments list of arguments to be passed to the method
-     * @param <E>       the type of the generated value
-     * @return a {@link Generator} that returns result of invoking the given method
-     * @throws IllegalAccessException if the given method is not accessible from the current class
-     */
-    public static <E> Generator<E> ofDeclaredMethod(Method method, List<Generator<?>> arguments)
-            throws IllegalAccessException {
-        Objects.requireNonNull(method, "method");
-        try {
-            return ofHandle(asHandle(method, false), arguments);
-        } catch (NoSuchMethodException e) {
-            throw new RuntimeException(e);
-        }
-    }
-
-    private static MethodHandle asHandle(Method method, boolean publicOnly) throws IllegalAccessException,
-            NoSuchMethodException {
-        return (publicOnly ? MethodHandles.publicLookup() : MethodHandles.lookup()).unreflect(method);
-    }
-
-    /**
-     * Creates a {@link Generator} that returns result of invoking the given {@code MethodHandle} with random generated
-     * arguments. Arguments must match with {@code MethodHandle} parameters.
-     *
-     * @param handle    {@code MethodHandle} to be invoked
-     * @param arguments arguments to be passed to the {@code MethodHandle}
-     * @param <E>       the type of the generated value
-     * @return a {@link Generator} that returns result of invoking the given {@code MethodHandle}
-     */
-    public static <E> Generator<E> ofHandle(MethodHandle handle, Generator<?>... arguments) {
-        return new InvokableGenerator<>(handle, arguments);
-    }
-
-    /**
-     * Creates a {@link Generator} that returns result of invoking the given {@code MethodHandle} with random generated
-     * arguments. Arguments must match with {@code MethodHandle} parameters.
-     *
-     * @param handle    {@code MethodHandle} to be invoked
-     * @param arguments list of arguments to be passed to the {@code MethodHandle}
-     * @param <E>       the type of the generated value
-     * @return a {@link Generator} that returns result of invoking the given {@code MethodHandle}
-     */
-    public static <E> Generator<E> ofHandle(MethodHandle handle, List<Generator<?>> arguments) {
-        return new InvokableGenerator<>(handle, arguments);
     }
 
     static class ByteRangeGenerator implements RangeGenerator<Byte> {
@@ -1823,46 +1633,6 @@ public final class Generators {
                 list.add((Generator<Object>) item);
             }
             return list;
-        }
-    }
-
-    static class InvokableGenerator<T> implements Generator<T> {
-        private final MethodHandle handle;
-        private final List<Generator<?>> arguments;
-
-        public InvokableGenerator(MethodHandle handle, Collection<Generator<?>> arguments) {
-            this.handle = Objects.requireNonNull(handle);
-            Objects.requireNonNull(arguments);
-            for (Generator<?> argument : arguments) {
-                Objects.requireNonNull(argument);
-            }
-            if (handle.type().parameterCount() != arguments.size()) {
-                throw new IllegalArgumentException("wrong number of arguments");
-            }
-            this.arguments = List.copyOf(arguments);
-        }
-
-        public InvokableGenerator(MethodHandle handle, Generator<?>[] arguments) {
-            this.handle = Objects.requireNonNull(handle);
-            Objects.requireNonNull(arguments);
-            for (Generator<?> argument : arguments) {
-                Objects.requireNonNull(argument);
-            }
-            this.arguments = Arrays.asList(arguments);
-        }
-
-        @SuppressWarnings("unchecked")
-        @Override
-        public T generate(RandomGenerator random) {
-            Object[] args = new Object[arguments.size()];
-            for (int i = 0; i < args.length; i++) {
-                args[i] = arguments.get(i).generate(random);
-            }
-            try {
-                return (T) handle.invoke(args);
-            } catch (Throwable e) {
-                throw new RuntimeException(e);
-            }
         }
     }
 }
