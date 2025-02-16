@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8" ?>
 <!--
-  ~ Copyright (C) 2024 SystemFalse.
+  ~ Copyright (C) 2025 SystemFalse.
   ~
   ~ Licensed under the Apache License, Version 2.0 (the "License");
   ~ you may not use this file except in compliance with the License.
@@ -27,7 +27,7 @@
 
     <groupId>io.github.systemfalse</groupId>
     <artifactId>random-lib</artifactId>
-    <version>1.2.0</version>
+    <version>1.2.1</version>
     <packaging>jar</packaging>
 
     <name>Random Library</name>
