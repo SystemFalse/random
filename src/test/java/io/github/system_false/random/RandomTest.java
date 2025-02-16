@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024 SystemFalse.
+ * Copyright (C) 2025 SystemFalse.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,6 +20,7 @@ package io.github.system_false.random;
 import org.junit.jupiter.api.Test;
 
 import java.util.*;
+import java.util.concurrent.atomic.AtomicLong;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -314,6 +315,18 @@ public class RandomTest {
     }
 
     @Test
+    void bundlePoolTest() {
+        var evenDigits = Generators.<Integer>bundlePoolBuilder(true)
+                .add(0, 2, 4, 6, 8)
+                .build();
+        Random random = new Random();
+        for (int i = 0; i < 1000; i++) {
+            int sum = evenDigits.stream(random).limit(10).mapToInt(n -> n).sum();
+            assertEquals(40, sum, "sum of 10 even digits is not 40");
+        }
+    }
+
+    @Test
     void orderedPoolTest() {
         Integer[] pool = new Integer[] { 5, 3, 8, 5, 2, 9 };
         var poolGenerator = Generators.ofOrderedPool(pool);
@@ -322,5 +335,152 @@ public class RandomTest {
             Integer next = assertDoesNotThrow(() -> poolGenerator.generate(random), "failed to generate integer");
             assertEquals(pool[i % pool.length], next, "value " + next + " is not in right order");
         }
+    }
+
+    @Test
+    void multiplePoolTest() {
+        record Money(long amount) {}
+        enum Rarity {
+            COMMON,
+            UNCOMMON,
+            RARE,
+            EPIC,
+            LEGENDARY
+        }
+        record Weapon(Rarity rarity) {}
+
+        var lootTable = Generators.multiplePoolBuilder()
+                .add(Generators.ofInt(100, 200).map(Money::new))
+                .add(pib -> pib
+                        .value(Generators.<Rarity>weightedPoolBuilder()
+                                .add(pib2 -> pib2
+                                        .value(Rarity.COMMON)
+                                        .weight(40))
+                                .add(pib2 -> pib2
+                                        .value(Rarity.UNCOMMON)
+                                        .weight(30))
+                                .add(pib2 -> pib2
+                                        .value(Rarity.RARE)
+                                        .weight(20))
+                                .add(pib2 -> pib2
+                                        .value(Rarity.EPIC)
+                                        .weight(9))
+                                .add(pib2 -> pib2
+                                        .value(Rarity.LEGENDARY)
+                                        .weight(1))
+                                .build().map(Optional::orElseThrow).map(Weapon::new))
+                        .condition(() -> Math.random() < 0.3))
+                .build();
+        Random random = new Random();
+        for (int i = 0; i < 1000; i++) {
+            List<Object> next = assertDoesNotThrow(() -> lootTable.generate(random), "failed to generate object");
+            assertInstanceOf(Money.class, next.get(0), "first element is not Money");
+            Money money = (Money) next.get(0);
+            assertTrue(money.amount >= 100 && money.amount <= 200, "money amount is not between 100 and 200");
+            if (next.size() > 1) {
+                assertInstanceOf(Weapon.class, next.get(1), "second element is not Weapon");
+                Weapon weapon = (Weapon) next.get(1);
+                assertTrue(weapon.rarity == Rarity.COMMON || weapon.rarity == Rarity.UNCOMMON || weapon.rarity == Rarity.RARE ||
+                        weapon.rarity == Rarity.EPIC || weapon.rarity == Rarity.LEGENDARY, "rarity is not in expected range");
+            }
+        }
+    }
+
+    @Test
+    void weightedPoolTest() {
+        var numbers = Generators.<Integer>weightedPoolBuilder()
+                .add(pb -> pb
+                        .value(0)
+                        .weight(1L))
+                .add(pb -> pb
+                        .value(1)
+                        .weight(2L))
+                .add(pb -> pb
+                        .value(2)
+                        .weight(3L))
+                .build();
+        Random random = new Random();
+        int[] count = new int[3];
+        for (int i = 0; i < 1000; i++) {
+            Optional<Integer> next = assertDoesNotThrow(() -> numbers.generate(random), "failed to generate integer");
+            assertTrue(next.isPresent(), "value is not present");
+            int n = next.get();
+            assertTrue(n >= 0 && n <= 2, "value " + n + " is not between 0 and 2");
+            ++count[n];
+        }
+        System.out.printf("%d, %d, %d = %s%n", 0, 1, 2, Arrays.toString(count));
+    }
+
+    static class UserInfo {
+        UUID id;
+        String name;
+        short age;
+
+        @SuppressWarnings("unused")
+        public void setName(String name) {
+            this.name = name;
+        }
+
+        public void setAge(short age) {
+            this.age = age;
+        }
+    }
+
+    @Test
+    void objectClassTest() {
+        var generator = Generators.builder(UserInfo.class)
+                .field("id", UUID::randomUUID)
+                .field("name", Generators.ofString(5, Generators.ofASCIIChar()))
+                .field("age", Generators.ofShort((short) 100))
+                .build();
+        Random random = new Random();
+        for (int i = 0; i < 1000; i++) {
+            UserInfo info = generator.generate(random);
+            assertNotNull(info, "null object");
+            assertNotNull(info.id, "null id");
+            assertNotNull(info.name, "null name");
+            assertEquals(5, info.name.length(), "wrong length of name: " + info.name.length());
+            assertTrue(info.age >= 0 && info.age < 100, "wrong age: " + info.age);
+        }
+    }
+
+    record Color(int red, int green, int blue) {}
+
+    @Test
+    void recordTest() {
+        var generator = Generators.recordBuilder(Color.class)
+                .field("red", Generators.ofInt(0, 255))
+                .field("green", Generators.ofInt(0, 255))
+                .field("blue", Generators.ofInt(0, 255))
+                .build();
+        Random random = new Random();
+        for (int i = 0; i < 1000; i++) {
+            Color color = generator.generate(random);
+            assertNotNull(color, "null object");
+            assertTrue(color.red >= 0 && color.red <= 255, "wrong red: " + color.red);
+            assertTrue(color.green >= 0 && color.green <= 255, "wrong green: " + color.green);
+            assertTrue(color.blue >= 0 && color.blue <= 255, "wrong blue: " + color.blue);
+        }
+    }
+
+    @Test
+    void itemBuilderTest() {
+        AtomicLong pickCount = new AtomicLong(), ignoreCount = new AtomicLong();
+        var item = PoolItem.<Integer>builder()
+                .value(5)
+                .weight(10)
+                .condition(() -> Math.random() < 0.3)
+                .pick(pickCount::setPlain)
+                .ignore(ignoreCount::setPlain)
+                .build();
+        var generator = Generators.<Integer>weightedPoolBuilder()
+                .add(item)
+                .build();
+        Random random = new Random();
+        for (int i = 0; i < 1000; i++) {
+            Optional<Integer> next = assertDoesNotThrow(() -> generator.generate(random), "failed to generate integer");
+            next.ifPresent(n -> assertEquals(5, n, "value is not 5"));
+        }
+        System.out.printf("Picked: %d, Ignored: %d%n", pickCount.get(), ignoreCount.get());
     }
 }

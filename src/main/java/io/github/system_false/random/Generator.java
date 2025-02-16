@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024 SystemFalse.
+ * Copyright (C) 2025 SystemFalse.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -22,25 +22,27 @@ import java.math.BigInteger;
 import java.util.*;
 import java.util.function.BiFunction;
 import java.util.function.Function;
+import java.util.random.RandomGenerator;
+import java.util.stream.Stream;
 
 /**
  * This interface is used to generate random values of any type.
  * <p>
  * It has realizations of base types generation:
  * <ul>
- *     <li>{@link #generateByte(Random, byte, byte)}</li>
- *     <li>{@link #generateChar(Random, char, char)}</li>
- *     <li>{@link #generateShort(Random, short, short)}</li>
- *     <li>{@link #generateInt(Random, int, int)}</li>
- *     <li>{@link #generateLong(Random, long, long)}</li>
- *     <li>{@link #generateFloat(Random, float, float)}</li>
- *     <li>{@link #generateDouble(Random, double, double)}</li>
- *     <li>{@link #generateString(Random, int, int, Generator)}</li>
- *     <li>{@link #generateEnum(Random, Class, Generator)}</li>
- *     <li>{@link #generateArray(Random, Class, Generator, int)}</li>
- *     <li>{@link #generateList(Random, Class, Generator, int)}</li>
- *     <li>{@link #generateSet(Random, Class, Generator, int)}</li>
- *     <li>{@link #generateMap(Random, Class, Class, Generator, Generator, BiFunction, int)}</li>
+ *     <li>{@link #generateByte(RandomGenerator, byte, byte)}</li>
+ *     <li>{@link #generateChar(RandomGenerator, char, char)}</li>
+ *     <li>{@link #generateShort(RandomGenerator, short, short)}</li>
+ *     <li>{@link #generateInt(RandomGenerator, int, int)}</li>
+ *     <li>{@link #generateLong(RandomGenerator, long, long)}</li>
+ *     <li>{@link #generateFloat(RandomGenerator, float, float)}</li>
+ *     <li>{@link #generateDouble(RandomGenerator, double, double)}</li>
+ *     <li>{@link #generateString(RandomGenerator, int, int, Generator)}</li>
+ *     <li>{@link #generateEnum(RandomGenerator, Class, Generator)}</li>
+ *     <li>{@link #generateArray(RandomGenerator, Class, Generator, int)}</li>
+ *     <li>{@link #generateList(RandomGenerator, Class, Generator, int)}</li>
+ *     <li>{@link #generateSet(RandomGenerator, Class, Generator, int)}</li>
+ *     <li>{@link #generateMap(RandomGenerator, Class, Class, Generator, Generator, BiFunction, int)}</li>
  * </ul>
  *
  * @param <T> the type of the generated value
@@ -53,7 +55,7 @@ public interface Generator<T> {
      * @param random PRNG or RNG to use
      * @return a random value of the type represented by this generator
      */
-    T generate(Random random);
+    T generate(RandomGenerator random);
 
     /**
      * Generates a random value of the type represented by this generator using a newly created PRNG.
@@ -61,7 +63,7 @@ public interface Generator<T> {
      * @return a random value of the type represented by this generator
      */
     default T generate() {
-        return generate(new Random());
+        return generate(Generators.getRandom());
     }
 
     /**
@@ -91,6 +93,25 @@ public interface Generator<T> {
     }
 
     /**
+     * Generates an infinite stream of random values of the type represented by this generator.
+     *
+     * @return a stream of random values of the type represented by this generator
+     */
+    default Stream<T> stream() {
+        return Stream.generate(this::generate);
+    }
+
+    /**
+     * Generates as infinite stream of random values of the type represented by this generator.
+     * Given random generator is used for generation.
+     * @param random generator to use
+     * @return a stream of random values of the type represented by this generator
+     */
+    default Stream<T> stream(RandomGenerator random) {
+        return Stream.generate(() -> generate(random));
+    }
+
+    /**
      * Generates a random byte.
      * <p>
      * The given min and max values are used to generate a random byte value.
@@ -104,7 +125,7 @@ public interface Generator<T> {
      * @throws NullPointerException if {@code random} is {@code null}
      * @throws GenerationException if {@code minValue} is greater than {@code maxValue}
      */
-    static byte generateByte(Random random, byte minValue, byte maxValue) {
+    static byte generateByte(RandomGenerator random, byte minValue, byte maxValue) {
         Objects.requireNonNull(random, "random");
         if (minValue > maxValue) {
             throw new GenerationException("min value must be less than or equal to max value");
@@ -126,7 +147,7 @@ public interface Generator<T> {
      * @throws NullPointerException if {@code random} is {@code null}
      * @throws GenerationException if {@code minValue} is greater than {@code maxValue}
      */
-    static char generateChar(Random random, char minValue, char maxValue) {
+    static char generateChar(RandomGenerator random, char minValue, char maxValue) {
         Objects.requireNonNull(random, "random");
         if (minValue > maxValue) {
             throw new GenerationException("min value must be less than or equal to max value");
@@ -148,7 +169,7 @@ public interface Generator<T> {
      * @throws NullPointerException if {@code random} is {@code null}
      * @throws GenerationException if {@code minValue} is greater than {@code maxValue}
      */
-    static short generateShort(Random random, short minValue, short maxValue) {
+    static short generateShort(RandomGenerator random, short minValue, short maxValue) {
         Objects.requireNonNull(random, "random");
         if (minValue > maxValue) {
             throw new GenerationException("min value must be less than or equal to max value");
@@ -170,7 +191,7 @@ public interface Generator<T> {
      * @throws NullPointerException if {@code random} is {@code null}
      * @throws GenerationException if {@code minValue} is greater than {@code maxValue}
      */
-    static int generateInt(Random random, int minValue, int maxValue) {
+    static int generateInt(RandomGenerator random, int minValue, int maxValue) {
         Objects.requireNonNull(random, "random");
         if (minValue > maxValue) {
             throw new GenerationException("min value must be less than or equal to max value");
@@ -192,7 +213,7 @@ public interface Generator<T> {
      * @throws NullPointerException if {@code random} is {@code null}
      * @throws GenerationException if {@code minValue} is greater than {@code maxValue}
      */
-    static long generateLong(Random random, long minValue, long maxValue) {
+    static long generateLong(RandomGenerator random, long minValue, long maxValue) {
         Objects.requireNonNull(random, "random");
         if (minValue > maxValue) {
             throw new GenerationException("min value must be less than or equal to max value");
@@ -219,7 +240,7 @@ public interface Generator<T> {
      * @throws NullPointerException if {@code random} is {@code null}
      * @throws GenerationException if {@code minValue} is greater that {@code maxValue} or any of them is NaN or infinite
      */
-    static float generateFloat(Random random, float minValue, float maxValue) {
+    static float generateFloat(RandomGenerator random, float minValue, float maxValue) {
         Objects.requireNonNull(random, "random");
         if (Float.isInfinite(minValue) || Float.isInfinite(maxValue)) {
             throw new GenerationException("min and max values must be finite");
@@ -248,7 +269,7 @@ public interface Generator<T> {
      * @throws NullPointerException if {@code random} is {@code null}
      * @throws GenerationException if {@code minValue} is greater that {@code maxValue} or any of them is NaN or infinite
      */
-    static double generateDouble(Random random, double minValue, double maxValue) {
+    static double generateDouble(RandomGenerator random, double minValue, double maxValue) {
         Objects.requireNonNull(random, "random");
         if (Double.isInfinite(minValue) || Double.isInfinite(maxValue)) {
             throw new GenerationException("min and max values must be finite");
@@ -261,7 +282,7 @@ public interface Generator<T> {
         }
         return random.nextDouble() * (maxValue - minValue) + minValue;
     }
-    
+
     /**
      * Generates a random string value.
      * <p>
@@ -278,7 +299,7 @@ public interface Generator<T> {
      * @throws NullPointerException if {@code random} or {@code generator} is {@code null}
      * @throws GenerationException if {@code minValue} is greater than {@code maxValue}
      */
-    static String generateString(Random random, int minLength, int maxLength, Generator<Character> charGenerator) {
+    static String generateString(RandomGenerator random, int minLength, int maxLength, Generator<Character> charGenerator) {
         Objects.requireNonNull(random, "random");
         Objects.requireNonNull(charGenerator, "generator");
         if (minLength > maxLength) {
@@ -310,7 +331,7 @@ public interface Generator<T> {
      * @throws GenerationException if generated integer is less than 0 or greater than or equal to the number of
      *     enum constants
      */
-    static <T extends Enum<T>> T generateEnum(Random random, Class<T> enumClass, Generator<Integer> intGenerator) {
+    static <T extends Enum<T>> T generateEnum(RandomGenerator random, Class<T> enumClass, Generator<Integer> intGenerator) {
         Objects.requireNonNull(random, "random");
         Objects.requireNonNull(enumClass, "enumClass");
         Objects.requireNonNull(intGenerator, "generator");
@@ -344,7 +365,7 @@ public interface Generator<T> {
      * @throws GenerationException if {@code length} is negative
      */
     @SuppressWarnings("unchecked")
-    static <T, A> A generateArray(Random random, Class<T> elementType, Generator<T> generator, int length) {
+    static <T, A> A generateArray(RandomGenerator random, Class<T> elementType, Generator<T> generator, int length) {
         Objects.requireNonNull(random, "random");
         Objects.requireNonNull(elementType, "elementType");
         Objects.requireNonNull(generator, "generator");
@@ -383,7 +404,7 @@ public interface Generator<T> {
      * @throws NullPointerException if {@code random}, {@code elementType} or {@code generator} is {@code null}
      * @throws GenerationException if {@code length} is negative
      */
-    static <T> List<T> generateList(Random random, Class<T> elementType, Generator<T> generator, int length) {
+    static <T> List<T> generateList(RandomGenerator random, Class<T> elementType, Generator<T> generator, int length) {
         Objects.requireNonNull(random, "random");
         Objects.requireNonNull(elementType, "elementType");
         Objects.requireNonNull(generator, "generator");
@@ -422,7 +443,7 @@ public interface Generator<T> {
      * @throws NullPointerException if {@code random}, {@code elementType} or {@code generator} is {@code null}
      * @throws GenerationException if {@code length} is negative
      */
-    static <T> Set<T> generateSet(Random random, Class<T> elementType, Generator<T> generator, int length) {
+    static <T> Set<T> generateSet(RandomGenerator random, Class<T> elementType, Generator<T> generator, int length) {
         Objects.requireNonNull(random, "random");
         Objects.requireNonNull(elementType, "elementType");
         Objects.requireNonNull(generator, "generator");
@@ -475,8 +496,9 @@ public interface Generator<T> {
      *
      * @see Map#merge(Object, Object, BiFunction)
      */
-    static <K, V> Map<K, V> generateMap(Random random, Class<K> keyType, Class<V> valueType, Generator<K> keyGenerator,
-                                        Generator<V> valueGenerator, BiFunction<V, V, V> duplicateResolver, int length) {
+    static <K, V> Map<K, V> generateMap(RandomGenerator random, Class<K> keyType, Class<V> valueType,
+                                        Generator<K> keyGenerator, Generator<V> valueGenerator,
+                                        BiFunction<V, V, V> duplicateResolver, int length) {
         Objects.requireNonNull(random, "random");
         Objects.requireNonNull(keyType, "keyType");
         Objects.requireNonNull(valueType, "valueType");
