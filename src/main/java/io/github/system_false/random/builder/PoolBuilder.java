@@ -382,6 +382,10 @@ class WeightedPoolGenerator<T> extends AbstractPoolGenerator<T, Optional<T>> {
             totalWeight.addAndGet(item.weight());
             items.add(item);
         });
+        if (totalWeight.get() == 0) {
+            notifyItems(null);
+            return Optional.empty();
+        }
         AtomicLong next = new AtomicLong(random.nextLong(totalWeight.get()));
         var select = items.stream().dropWhile(item -> {
             long difference = next.get() - item.weight();
