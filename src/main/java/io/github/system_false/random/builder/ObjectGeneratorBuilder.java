@@ -41,6 +41,10 @@ public class ObjectGeneratorBuilder<T> extends GeneratorBuilder<T> {
     private Function<RandomGenerator, T> constructor;
     private final Map<String, Generator<?>> fieldGenerators;
 
+    /**
+     * Public constructor that creates new builder for specified object class
+     * @param objectClass object class
+     */
     public ObjectGeneratorBuilder(Class<T> objectClass) {
         this.objectClass = checkClass(objectClass);
         fieldGenerators = new HashMap<>(objectClass.getDeclaredFields().length);

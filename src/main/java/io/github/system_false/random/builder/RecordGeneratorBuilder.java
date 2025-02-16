@@ -40,6 +40,10 @@ public class RecordGeneratorBuilder<T> extends GeneratorBuilder<T> {
     private final Class<T> recordClass;
     private final Map<String, Generator<?>> fieldGenerators;
 
+    /**
+     * Public constructor that creates new builder for specified record class.
+     * @param recordClass record class
+     */
     public RecordGeneratorBuilder(Class<T> recordClass) {
         if (!Objects.requireNonNull(recordClass, "class").isRecord()) {
             throw new IllegalArgumentException("class must be a record");

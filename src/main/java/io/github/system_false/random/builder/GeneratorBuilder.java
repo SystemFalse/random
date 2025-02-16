@@ -27,6 +27,13 @@ import java.lang.reflect.Field;
  */
 public abstract class GeneratorBuilder<T> extends AbstractBuilder<Generator<T>> {
     /**
+     * Public constructor that does nothing.
+     */
+    public GeneratorBuilder() {
+
+    }
+
+    /**
      * Method checks if the given class has the given field and returns it.
      * @param clazz class to check
      * @param name field name
