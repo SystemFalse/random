@@ -377,7 +377,7 @@ class WeightedPoolGenerator<T> extends AbstractPoolGenerator<T, Optional<T>> {
         var select = items.stream().dropWhile(item -> {
             long difference = next.get() - item.weight();
             long cmp = item.weight() - next.getAndSet(difference);
-            return cmp > 0;
+            return cmp <= 0;
         }).findFirst();
         select.ifPresent(this::notifyItems);
         return select.map(item -> item.generate(random));
