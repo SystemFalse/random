@@ -260,6 +260,15 @@ public class PoolBuilder<T, R> extends AbstractBuilder<PoolGenerator<R>> {
     public static PoolBuilder<Object, List<Object>> multiple() {
         return new PoolBuilder<>(MultiplePoolGenerator::new);
     }
+
+    /**
+     * Method creates new builder for multiple pool generator object.
+     * @param unwrapCollection whether generated collections should be unwrapped or not
+     * @return new builder
+     */
+    public static PoolBuilder<Object, List<Object>> multiple(boolean unwrapCollection) {
+        return new PoolBuilder<>(items -> new MultiplePoolGenerator(items, unwrapCollection));
+    }
 }
 
 abstract class AbstractPoolGenerator<T, R> implements PoolGenerator<R> {
@@ -385,8 +394,15 @@ class WeightedPoolGenerator<T> extends AbstractPoolGenerator<T, Optional<T>> {
 }
 
 class MultiplePoolGenerator extends AbstractPoolGenerator<Object, List<Object>> {
+    private final boolean unwrapCollection;
+
     public MultiplePoolGenerator(List<PoolItem<Object>> values) {
-        super(values);
+        this(values, true);
+    }
+
+    public MultiplePoolGenerator(List<PoolItem<Object>> poolItems, boolean unwrapCollection) {
+        super(poolItems);
+        this.unwrapCollection = unwrapCollection;
     }
 
     @Override
@@ -395,7 +411,7 @@ class MultiplePoolGenerator extends AbstractPoolGenerator<Object, List<Object>> 
         items.forEach(item -> {
             if (item.test()) {
                 Object next = item.generate(random);
-                if (next instanceof Collection<?> c) {
+                if (unwrapCollection && next instanceof Collection<?> c) {
                     list.addAll(c);
                 } else {
                     list.add(next);

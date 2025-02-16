@@ -1169,6 +1169,19 @@ public final class Generators {
     }
 
     /**
+     * Returns new multiple pool builder for configuring pool.
+     * <p>
+     * Multiple pool will generate a list of objects. A multiple pool creates a list of only those
+     * elements for which the condition will be satisfied.
+     * </p>
+     * @param unwrapCollection whether generated collections should be unwrapped
+     * @return new multiple pool builder
+     */
+    public static PoolBuilder<Object, List<Object>> multiplePoolBuilder(boolean unwrapCollection) {
+        return PoolBuilder.multiple(unwrapCollection);
+    }
+
+    /**
      * Creates a generator that returns a constant value.
      * <p>
      * The given value is returned every time the generated value is requested.
