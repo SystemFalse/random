@@ -25,31 +25,14 @@ import java.lang.reflect.Field;
  * Base class for all builders of {@link Generator} instances.
  * @param <T> the type of the generated value
  */
-public abstract class GeneratorBuilder<T> {
-    private Generator<T> instance;
-
-    protected GeneratorBuilder() {}
-
-    protected void checkInstance() {
-        if (instance != null) {
-            throw new IllegalStateException("Instance already built");
-        }
-    }
-
-    protected abstract Generator<T> build0();
-
+public abstract class GeneratorBuilder<T> extends AbstractBuilder<Generator<T>> {
     /**
-     * Method returns new {@link Generator} instance if it was not built yet. If
-     * this method is called multiple times, the same instance will be returned.
-     * @return new {@link Generator} instance
+     * Method checks if the given class has the given field and returns it.
+     * @param clazz class to check
+     * @param name field name
+     * @return field
+     * @throws IllegalArgumentException if field does not exist
      */
-    public Generator<T> build() {
-        if (instance != null) {
-            return instance;
-        }
-        return instance = build0();
-    }
-
     protected static Field checkField(Class<?> clazz, String name) {
         Field field;
         try {
@@ -60,6 +43,12 @@ public abstract class GeneratorBuilder<T> {
         return field;
     }
 
+    /**
+     * Method checks if the given value can be assigned to the given field.
+     * @param field field
+     * @param value value
+     * @throws IllegalArgumentException if value cannot be assigned to field
+     */
     protected static void checkCapability(Field field, Object value) {
         Class<?> fieldClass = field.getDeclaringClass();
         if (value != null) {

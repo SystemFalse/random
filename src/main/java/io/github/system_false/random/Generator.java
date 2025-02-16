@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024 SystemFalse.
+ * Copyright (C) 2025 SystemFalse.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -99,6 +99,16 @@ public interface Generator<T> {
      */
     default Stream<T> stream() {
         return Stream.generate(this::generate);
+    }
+
+    /**
+     * Generates as infinite stream of random values of the type represented by this generator.
+     * Given random generator is used for generation.
+     * @param random generator to use
+     * @return a stream of random values of the type represented by this generator
+     */
+    default Stream<T> stream(RandomGenerator random) {
+        return Stream.generate(() -> generate(random));
     }
 
     /**
