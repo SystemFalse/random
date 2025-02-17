@@ -19,20 +19,47 @@ package io.github.system_false.random;
 
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Function;
 
+/**
+ * Utility class that manages context cache. Default realization of {@link Contextual} interface
+ * uses this class to handle context.
+ *
+ * @see Contextual
+ */
 class ContextCache {
     private static final ConcurrentHashMap<Contextual<?>, Object> cache = new ConcurrentHashMap<>();
 
+    /**
+     * Private constructor to prevent instantiation.
+     */
     private ContextCache() {}
 
+    /**
+     * Initializes context for the given contextual object.
+     * @param contextual object to set context
+     * @param context    context
+     * @see Contextual#withContext(Object, Function)
+     */
     static void setContext(Contextual<?> contextual, Object context) {
         cache.put(contextual, context);
     }
 
+    /**
+     * Returns context for the given contextual object as an {@link Optional}.
+     * @param contextual object to retrieve context
+     * @return context
+     * @see Contextual#context()
+     */
     static Optional<?> getContext(Contextual<?> contextual) {
         return Optional.ofNullable(cache.getOrDefault(contextual, null));
     }
 
+    /**
+     * Removes context of the given contextual object from the cache.
+     * @param contextual object to remove context
+     * @see Contextual#withContext(Object, Function)
+     */
     static void resetContext(Contextual<?> contextual) {
         cache.remove(contextual);
     }

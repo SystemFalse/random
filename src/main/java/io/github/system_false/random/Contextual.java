@@ -21,6 +21,11 @@ import java.util.Objects;
 import java.util.Optional;
 import java.util.function.Function;
 
+/**
+ * Interface that provides way to use object with specified context. Default realization
+ * uses external cache to store contexts of all objects. It's thread-safe.
+ * @param <T> the type of implementation
+ */
 public interface Contextual<T extends Contextual<T>> {
     /**
      * Method returns an optional context value for this object.
