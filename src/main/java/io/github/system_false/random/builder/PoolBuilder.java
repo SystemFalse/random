@@ -23,6 +23,7 @@ import io.github.system_false.random.PoolGenerator;
 import io.github.system_false.random.PoolItem;
 
 import java.util.*;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.*;
 import java.util.random.RandomGenerator;
@@ -41,11 +42,11 @@ import java.util.random.RandomGenerator;
  * @param <R> the type of the generated value
  */
 public class PoolBuilder<T, R> extends AbstractBuilder<PoolGenerator<R>> {
-    private final Function<List<PoolItem<T>>, PoolGenerator<R>> poolBuilder;
+    private final Function<List<PoolItem<? extends T>>, PoolGenerator<R>> poolBuilder;
     /**
      * Pool containing items.
      */
-    protected ArrayList<PoolItem<T>> items;
+    protected ArrayList<PoolItem<? extends T>> items;
     private ContextualImpl<R> contextual;
 
     /**
@@ -55,7 +56,7 @@ public class PoolBuilder<T, R> extends AbstractBuilder<PoolGenerator<R>> {
      *                    a {@link PoolGenerator} object
      * @throws NullPointerException if {@code poolBuilder} is {@code null}
      */
-    public PoolBuilder(Function<List<PoolItem<T>>, PoolGenerator<R>> poolBuilder) {
+    public PoolBuilder(Function<List<PoolItem<? extends T>>, PoolGenerator<R>> poolBuilder) {
         this.poolBuilder = Objects.requireNonNull(poolBuilder);
         items = new ArrayList<>();
     }
@@ -75,6 +76,19 @@ public class PoolBuilder<T, R> extends AbstractBuilder<PoolGenerator<R>> {
         for (T value : values) {
             items.add(PoolItem.item(rg -> value));
         }
+        return this;
+    }
+
+    /**
+     * Method adds the given value to the pool. Value will have weight 1, and the condition
+     * that always returns {@code true}.
+     * @param value the value to add
+     * @return this builder
+     * @throws IllegalStateException if {@link #build()} method was already called
+     */
+    public final <E extends T> PoolBuilder<T, R> addValue(E value) {
+        checkInstance();
+        items.add(PoolItem.item(rg -> value));
         return this;
     }
 
@@ -99,6 +113,21 @@ public class PoolBuilder<T, R> extends AbstractBuilder<PoolGenerator<R>> {
     }
 
     /**
+     * Method adds the given supplier to the pool. Supplier will have weight 1, and the
+     * condition that always returns {@code true}.
+     * @param supplier the supplier to add
+     * @return this builder
+     * @throws IllegalStateException if {@link #build()} method was already called
+     * @throws NullPointerException if {@code supplier} or one of them are {@code null}
+     */
+    public final <E extends T> PoolBuilder<T, R> addSupplier(Supplier<E> supplier) {
+        checkInstance();
+        Objects.requireNonNull(supplier, "supplier");
+        items.add(PoolItem.item(rg -> supplier.get()));
+        return this;
+    }
+
+    /**
      * Method adds the given generators to the pool. All generators will have weight 1, and the
      * condition that always returns {@code true}.
      * @param generators the generators to add
@@ -119,8 +148,22 @@ public class PoolBuilder<T, R> extends AbstractBuilder<PoolGenerator<R>> {
     }
 
     /**
-     * Method adds the given items to the pool. All items will have weight 1, and the condition
-     * that always returns {@code true}.
+     * Method adds the given generator to the pool. Generators will have weight 1, and the
+     * condition that always returns {@code true}.
+     * @param generator the generator to add
+     * @return this builder
+     * @throws IllegalStateException if {@link #build()} method was already called
+     * @throws NullPointerException if {@code generator} is {@code null}
+     */
+    public final <E extends T> PoolBuilder<T, R> addGenerator(Generator<E> generator) {
+        checkInstance();
+        Objects.requireNonNull(generator, "generator");
+        items.add(PoolItem.item(generator));
+        return this;
+    }
+
+    /**
+     * Method adds the given items to the pool.
      * @param items the items to add
      * @return this builder
      * @throws IllegalStateException if {@link #build()} method was already called
@@ -139,6 +182,20 @@ public class PoolBuilder<T, R> extends AbstractBuilder<PoolGenerator<R>> {
     }
 
     /**
+     * Method adds the given items to the pool.
+     * @param item the item to add
+     * @return this builder
+     * @throws IllegalStateException if {@link #build()} method was already called
+     * @throws NullPointerException if {@code item} is {@code null}
+     */
+    public final <E extends T> PoolBuilder<T, R> addItem(PoolItem<E> item) {
+        checkInstance();
+        Objects.requireNonNull(item, "item");
+        items.add(item);
+        return this;
+    }
+
+    /**
      * Method invokes consumer with new builder and adds built item to the pool.
      * @param itemBuilder the builder consumer
      * @return this builder
@@ -149,6 +206,22 @@ public class PoolBuilder<T, R> extends AbstractBuilder<PoolGenerator<R>> {
         checkInstance();
         Objects.requireNonNull(itemBuilder, "itemBuilder");
         PoolItemBuilder<T> builder = new PoolItemBuilder<>();
+        itemBuilder.accept(builder);
+        items.add(builder.build());
+        return this;
+    }
+
+    /**
+     * Method invokes consumer with new builder and adds built item to the pool.
+     * @param itemBuilder the builder consumer
+     * @return this builder
+     * @throws IllegalStateException if {@link #build()} method was already called
+     * @throws NullPointerException if {@code itemBuilder} is {@code null}
+     */
+    public <E extends T> PoolBuilder<T, R> addBuilder(Consumer<PoolItemBuilder<E>> itemBuilder) {
+        checkInstance();
+        Objects.requireNonNull(itemBuilder, "itemBuilder");
+        PoolItemBuilder<E> builder = new PoolItemBuilder<>();
         itemBuilder.accept(builder);
         items.add(builder.build());
         return this;
@@ -214,7 +287,7 @@ public class PoolBuilder<T, R> extends AbstractBuilder<PoolGenerator<R>> {
      * @return this builder
      * @throws NullPointerException if {@code action} is {@code null}
      */
-    public PoolBuilder<T, R> withContext(BiConsumer<PoolBuilder<T, R>, Contextual<Generator<R>>> action) {
+    public PoolBuilder<T, R> withContext(BiConsumer<PoolBuilder<T, R>, Contextual> action) {
         checkInstance();
         Objects.requireNonNull(action, "action");
         if (contextual == null) {
@@ -296,9 +369,9 @@ public class PoolBuilder<T, R> extends AbstractBuilder<PoolGenerator<R>> {
 }
 
 abstract class AbstractPoolGenerator<T, R> implements PoolGenerator<R> {
-    protected final List<PoolItem<T>> items;
+    protected final List<PoolItem<? extends T>> items;
 
-    protected AbstractPoolGenerator(List<PoolItem<T>> items) {
+    protected AbstractPoolGenerator(List<PoolItem<? extends T>> items) {
         this.items = items;
     }
 
@@ -324,9 +397,10 @@ abstract class AbstractPoolGenerator<T, R> implements PoolGenerator<R> {
         return items.size();
     }
 
+    @SuppressWarnings("unchecked")
     @Override
     public PoolItem<T> get(int index) {
-        return items.get(index);
+        return (PoolItem<T>) items.get(index);
     }
 
     /**
@@ -342,16 +416,26 @@ abstract class AbstractPoolGenerator<T, R> implements PoolGenerator<R> {
             }
         });
     }
+
+    protected static long normalizeWeight(long weight) {
+        if (weight < 0) {
+            return 0;
+        }
+        if (weight > Integer.MAX_VALUE) {
+            return Integer.MAX_VALUE;
+        }
+        return weight;
+    }
 }
 
 class BundlePoolGenerator<T> extends AbstractPoolGenerator<T, T> {
     private int bundleIndex;
 
-    public BundlePoolGenerator(List<PoolItem<T>> items) {
+    public BundlePoolGenerator(List<PoolItem<? extends T>> items) {
         this(items, false);
     }
 
-    public BundlePoolGenerator(List<PoolItem<T>> items, boolean useBundle) {
+    public BundlePoolGenerator(List<PoolItem<? extends T>> items, boolean useBundle) {
         super(new ArrayList<>(items));
         if (items.size() <= 1) {
             throw new IllegalArgumentException("At least 2 items are required to use bundle.");
@@ -362,13 +446,13 @@ class BundlePoolGenerator<T> extends AbstractPoolGenerator<T, T> {
     @Override
     public T generate(RandomGenerator random) {
         if (bundleIndex == -1) {
-            PoolItem<T> nextItem = items.get(random.nextInt(items.size()));
+            var nextItem = items.get(random.nextInt(items.size()));
             notifyItems(nextItem);
             return nextItem.generate(random, this);
         }
         int selected = random.nextInt(items.size() - bundleIndex) + bundleIndex;
-        PoolItem<T> next = items.get(selected);
-        PoolItem<T> current = items.get(bundleIndex);
+        var next = items.get(selected);
+        var current = items.get(bundleIndex);
         items.set(bundleIndex, next);
         items.set(selected, current);
         bundleIndex = (bundleIndex + 1) % items.size();
@@ -380,13 +464,13 @@ class BundlePoolGenerator<T> extends AbstractPoolGenerator<T, T> {
 class OrderedPoolGenerator<T> extends AbstractPoolGenerator<T, T> {
     private int current;
 
-    public OrderedPoolGenerator(List<PoolItem<T>> items) {
+    public OrderedPoolGenerator(List<PoolItem<? extends T>> items) {
         super(items);
     }
 
     @Override
     public T generate(RandomGenerator random) {
-        PoolItem<T> next = items.get(current);
+        var next = items.get(current);
         current = ++current % items.size();
         notifyItems(next);
         return next.generate(random, this);
@@ -394,28 +478,40 @@ class OrderedPoolGenerator<T> extends AbstractPoolGenerator<T, T> {
 }
 
 class WeightedPoolGenerator<T> extends AbstractPoolGenerator<T, Optional<T>> {
-    public WeightedPoolGenerator(List<PoolItem<T>> values) {
+    public WeightedPoolGenerator(List<PoolItem<? extends T>> values) {
         super(values);
     }
 
     @Override
     public Optional<T> generate(RandomGenerator random) {
         AtomicLong totalWeight = new AtomicLong();
-        List<PoolItem<T>> items = new ArrayList<>(this.items.size());
-        this.items.parallelStream().filter(PoolItem::test).forEachOrdered(item -> {
-            totalWeight.addAndGet(item.weight());
-            items.add(item);
-        });
+        Map<PoolItem<? extends T>, Long> itemWeights = new ConcurrentHashMap<>(items.size());
+        var context = context();
+        items.parallelStream().forEach(item ->
+            context.ifPresentOrElse(value ->
+                item.<PoolItem<? extends T>>withContext(value, item2 -> {
+                    if (item2.test()) {
+                        long weight = normalizeWeight(item2.weight());
+                        itemWeights.put(item2, weight);
+                        totalWeight.addAndGet(weight);
+                    }
+                }), () -> {
+                    if (item.test()) {
+                        long weight = normalizeWeight(item.weight());
+                        itemWeights.put(item, weight);
+                        totalWeight.addAndGet(weight);
+                    }
+                }));
         if (totalWeight.get() == 0) {
             notifyItems(null);
             return Optional.empty();
         }
         AtomicLong next = new AtomicLong(random.nextLong(totalWeight.get()));
-        var select = items.stream().dropWhile(item -> {
-            long difference = next.get() - item.weight();
-            long cmp = item.weight() - next.getAndSet(difference);
+        var select = itemWeights.entrySet().stream().dropWhile(entry -> {
+            long difference = next.get() - entry.getValue();
+            long cmp = entry.getValue() - next.getAndSet(difference);
             return cmp <= 0;
-        }).findFirst();
+        }).findFirst().map(Map.Entry::getKey);
         select.ifPresent(this::notifyItems);
         return select.map(item -> item.generate(random, this));
     }
@@ -424,11 +520,11 @@ class WeightedPoolGenerator<T> extends AbstractPoolGenerator<T, Optional<T>> {
 class MultiplePoolGenerator extends AbstractPoolGenerator<Object, List<Object>> {
     private final boolean unwrapCollection;
 
-    public MultiplePoolGenerator(List<PoolItem<Object>> values) {
+    public MultiplePoolGenerator(List<PoolItem<?>> values) {
         this(values, true);
     }
 
-    public MultiplePoolGenerator(List<PoolItem<Object>> poolItems, boolean unwrapCollection) {
+    public MultiplePoolGenerator(List<PoolItem<?>> poolItems, boolean unwrapCollection) {
         super(poolItems);
         this.unwrapCollection = unwrapCollection;
     }
@@ -436,19 +532,26 @@ class MultiplePoolGenerator extends AbstractPoolGenerator<Object, List<Object>> 
     @Override
     public List<Object> generate(RandomGenerator random) {
         ArrayList<Object> list = new ArrayList<>(items.size());
+        var context = context();
         items.forEach(item -> {
-            if (item.test()) {
-                Object next = item.generate(random, this);
-                if (unwrapCollection && next instanceof Collection<?> c) {
-                    list.addAll(c);
-                } else {
-                    list.add(next);
-                }
-                item.picked();
-            } else {
-                item.ignored();
-            }
+            context.ifPresentOrElse(value ->
+                item.<PoolItem<?>>withContext(value, item2 ->
+                    process(random, list, item2)), () -> process(random, list, item));
         });
         return list;
+    }
+
+    private void process(RandomGenerator random, ArrayList<Object> list, PoolItem<?> item) {
+        if (item.test()) {
+            Object next = item.generate(random);
+            if (unwrapCollection && next instanceof Collection<?> c) {
+                list.addAll(c);
+            } else {
+                list.add(next);
+            }
+            item.picked();
+        } else {
+            item.ignored();
+        }
     }
 }

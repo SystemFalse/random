@@ -28,7 +28,7 @@ import java.util.function.Function;
  * @see Contextual
  */
 class ContextCache {
-    private static final ConcurrentHashMap<Contextual<?>, Object> cache = new ConcurrentHashMap<>();
+    private static final ConcurrentHashMap<Contextual, Object> cache = new ConcurrentHashMap<>();
 
     /**
      * Private constructor to prevent instantiation.
@@ -41,7 +41,7 @@ class ContextCache {
      * @param context    context
      * @see Contextual#withContext(Object, Function)
      */
-    static void setContext(Contextual<?> contextual, Object context) {
+    static void setContext(Contextual contextual, Object context) {
         cache.put(contextual, context);
     }
 
@@ -51,7 +51,7 @@ class ContextCache {
      * @return context
      * @see Contextual#context()
      */
-    static Optional<?> getContext(Contextual<?> contextual) {
+    static Optional<?> getContext(Contextual contextual) {
         return Optional.ofNullable(cache.getOrDefault(contextual, null));
     }
 
@@ -60,7 +60,7 @@ class ContextCache {
      * @param contextual object to remove context
      * @see Contextual#withContext(Object, Function)
      */
-    static void resetContext(Contextual<?> contextual) {
+    static void resetContext(Contextual contextual) {
         cache.remove(contextual);
     }
 }

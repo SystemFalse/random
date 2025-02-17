@@ -359,7 +359,7 @@ public class PoolItemBuilder<T> extends AbstractBuilder<PoolItem<T>> {
      * @return this builder
      * @throws NullPointerException if {@code action} is {@code null}
      */
-    public PoolItemBuilder<T> withContext(BiConsumer<PoolItemBuilder<T>, Contextual<Generator<T>>> action) {
+    public PoolItemBuilder<T> withContext(BiConsumer<PoolItemBuilder<T>, Contextual> action) {
         checkInstance();
         Objects.requireNonNull(action, "action");
         if (contextual == null) {

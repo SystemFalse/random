@@ -19,14 +19,14 @@ package io.github.system_false.random;
 
 import java.util.Objects;
 import java.util.Optional;
+import java.util.function.Consumer;
 import java.util.function.Function;
 
 /**
  * Interface that provides way to use object with specified context. Default realization
  * uses external cache to store contexts of all objects. It's thread-safe.
- * @param <T> the type of implementation
  */
-public interface Contextual<T extends Contextual<T>> {
+public interface Contextual {
     /**
      * Method returns an optional context value for this object.
      * @return context
@@ -47,24 +47,25 @@ public interface Contextual<T extends Contextual<T>> {
     }
 
     /**
-     * Initializes this generator with the given context and returns the result of the given function.
+     * Initializes this contextual object with the given context and returns the result of the given function.
      * Scope of the given context is limited to the execution of the given function.
      *
      * @param context  context to set
      * @param function function to execute
+     * @param <C>      type of contextual object
      * @param <R>      the type of the result
      * @return result of the given function
      * @throws NullPointerException if {@code context} or {@code function} is {@code null}
      */
     @SuppressWarnings("unchecked")
-    default <R> R withContext(Object context, Function<T, R> function) {
+    default <C extends Contextual, R> R withContext(Object context, Function<C, R> function) {
         Objects.requireNonNull(context, "context");
         Objects.requireNonNull(function, "function");
         R result;
         synchronized (this) {
             ContextCache.setContext(this, context);
             try {
-                result = function.apply((T) this);
+                result = function.apply((C) this);
             } finally {
                 ContextCache.resetContext(this);
             }
@@ -73,14 +74,37 @@ public interface Contextual<T extends Contextual<T>> {
     }
 
     /**
+     * Initializes this contextual object with the given context and executes the given consumer.
+     * Scope of the given context is limited to the execution of the given consumer.
+     *
+     * @param context  context to set
+     * @param consumer consumer to execute
+     * @param <C>      type of contextual object
+     * @throws NullPointerException if {@code context} or {@code consumer} is {@code null}
+     */
+    @SuppressWarnings("unchecked")
+    default <C extends Contextual> void withContext(Object context, Consumer<C> consumer) {
+        Objects.requireNonNull(context, "context");
+        Objects.requireNonNull(consumer, "consumer");
+        synchronized (this) {
+            ContextCache.setContext(this, context);
+            try {
+                consumer.accept((C) this);
+            } finally {
+                ContextCache.resetContext(this);
+            }
+        }
+    }
+
+    /**
      * Method returns new contextual object that encapsulates given object.
      * @param object object to encapsulate
      * @param <E>    type of encapsulated object
      * @return new contextual object
      */
-    static <E extends Contextual<E>> Contextual<E> encapsulate(E object) {
+    static <E extends Contextual> Contextual encapsulate(E object) {
         Objects.requireNonNull(object, "object");
-        return new Contextual<>() {
+        return new Contextual() {
             @Override
             public Optional<?> context() {
                 return object.context();
@@ -92,7 +116,7 @@ public interface Contextual<T extends Contextual<T>> {
             }
 
             @Override
-            public <R> R withContext(Object context, Function<E, R> function) {
+            public <C extends Contextual, R> R withContext(Object context, Function<C, R> function) {
                 return object.withContext(context, function);
             }
         };

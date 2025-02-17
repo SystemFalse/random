@@ -27,7 +27,7 @@ import java.util.function.Function;
  * Class that implements {@link Contextual} interface and delegates all methods from {@link Generator}.
  * @param <T> the type of implementation
  */
-class ContextualImpl<T> implements Contextual<Generator<T>> {
+class ContextualImpl<T> implements Contextual {
     private Generator<T> base;
 
     /**
@@ -44,7 +44,7 @@ class ContextualImpl<T> implements Contextual<Generator<T>> {
     }
 
     @Override
-    public <R> R withContext(Object context, Function<Generator<T>, R> function) {
+    public <C extends Contextual, R> R withContext(Object context, Function<C, R> function) {
         if (base == null) {
             throw new IllegalStateException("Item was not built yet");
         }

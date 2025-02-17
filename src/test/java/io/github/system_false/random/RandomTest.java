@@ -21,6 +21,8 @@ import org.junit.jupiter.api.Test;
 
 import java.util.*;
 import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.Function;
+import java.util.random.RandomGenerator;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -337,18 +339,20 @@ public class RandomTest {
         }
     }
 
+    record Money(long amount) {}
+
+    enum Rarity {
+        COMMON,
+        UNCOMMON,
+        RARE,
+        EPIC,
+        LEGENDARY
+    }
+
+    record Weapon(Rarity rarity) {}
+
     @Test
     void multiplePoolTest() {
-        record Money(long amount) {}
-        enum Rarity {
-            COMMON,
-            UNCOMMON,
-            RARE,
-            EPIC,
-            LEGENDARY
-        }
-        record Weapon(Rarity rarity) {}
-
         var lootTable = Generators.multiplePoolBuilder()
                 .add(Generators.ofInt(100, 200).map(Money::new))
                 .add(pib -> pib
@@ -368,7 +372,7 @@ public class RandomTest {
                                 .add(pib2 -> pib2
                                         .value(Rarity.LEGENDARY)
                                         .weight(1))
-                                .build().map(Optional::orElseThrow).map(Weapon::new))
+                                .build().map((Function<Optional<Rarity>, Rarity>) Optional::orElseThrow).map(Weapon::new))
                         .condition(() -> Math.random() < 0.3))
                 .build();
         Random random = new Random();
@@ -482,5 +486,90 @@ public class RandomTest {
             next.ifPresent(n -> assertEquals(5, n, "value is not 5"));
         }
         System.out.printf("Picked: %d, Ignored: %d%n", pickCount.get(), ignoreCount.get());
+    }
+
+    @Test
+    void generatorContextTest() {
+        var generator = new Generator<Integer>() {
+            @Override
+            public Integer generate(RandomGenerator random) {
+                double luck = context(Double.class).orElse(0D);
+                int next = random.nextInt(100);
+                return Math.max(0, Math.min(99, (int) (next + luck * next)));
+            }
+        };
+        Random random = new Random();
+        for (int i = 0; i < 1000; i++) {
+            final double luck = (i % 200 - 99) / 100d;
+            int next = assertDoesNotThrow(() -> generator.generateWithContext(random, luck), "failed to generate integer");
+            assertTrue(next >= 0 && next <= 99, "value is not between 0 and 99: " + next);
+        }
+    }
+
+    @Test
+    void complexPoolTest() {
+        var lootTable = Generators.multiplePoolBuilder()
+                .addGenerator(Generators.ofInt(100, 200)
+                        .map((a, c) -> a + (int) (a * c.context(Double.class).orElse(0D)))
+                        .map(a -> Math.min(100, a))
+                        .map(Money::new))
+                .<Weapon>addBuilder(pib -> pib
+                        .value(Generators.<Rarity>weightedPoolBuilder()
+                                .addBuilder(pib2 -> pib2
+                                        .value(Rarity.COMMON)
+                                        .withContext((pib3, ctl) -> pib3
+                                                .weight(() -> Math.min(40, (long) (40 - ctl.context(Double.class).orElse(0D) * 40)))))
+                                .addBuilder(pib2 -> pib2
+                                        .value(Rarity.UNCOMMON)
+                                        .withContext((pib3, ctl) -> pib3
+                                                .weight(() -> Math.min(30, (long) (30 - ctl.context(Double.class).orElse(0D) * 30)))))
+                                .addBuilder(pib2 -> pib2
+                                        .value(Rarity.RARE)
+                                        .withContext((pib3, ctl) -> pib3
+                                                .weight(() -> Math.min(50, (long) (20 + ctl.context(Double.class).orElse(0D) * 30)))))
+                                .addBuilder(pib2 -> pib2
+                                        .value(Rarity.EPIC)
+                                        .withContext((pib3, ctl) -> pib3
+                                                .weight(() -> Math.min(30, (long) (9 + ctl.context(Double.class).orElse(0D) * 21)))))
+                                .addBuilder(pib2 -> pib2
+                                        .value(Rarity.LEGENDARY)
+                                        .withContext((pib3, ctl) -> pib3
+                                                .weight(() -> Math.min(20, (long) (1 + ctl.context(Double.class).orElse(0D) * 19)))))
+                                .build().map(opt -> opt.orElseThrow()).map(Weapon::new))
+                        .withContext((pib2, ctl) -> pib2
+                                .condition(() -> Math.random() < 0.3 + ctl.context(Double.class).orElse(0D) * 0.3)))
+                .build();
+        Random random = new Random();
+        long totalCount = 0;
+        TreeMap<Double, HashMap<Rarity, Integer>> count = new TreeMap<>();
+        for (int i = 0; i < 10000; i++) {
+            final double luck = (i % 100 + 1) / 100d;
+            List<Object> next = assertDoesNotThrow(() -> lootTable.generateWithContext(random, luck), "failed to generate object");
+            assertInstanceOf(Money.class, next.get(0), "first element is not Money");
+            Money money = (Money) next.get(0);
+            assertTrue(money.amount >= 100 && money.amount <= 400, "money amount is not between 100 and 400");
+            if (next.size() > 1) {
+                assertInstanceOf(Weapon.class, next.get(1), "second element is not Weapon");
+                Weapon weapon = (Weapon) next.get(1);
+                assertTrue(weapon.rarity == Rarity.COMMON || weapon.rarity == Rarity.UNCOMMON || weapon.rarity == Rarity.RARE ||
+                        weapon.rarity == Rarity.EPIC || weapon.rarity == Rarity.LEGENDARY, "rarity is not in expected range");
+                ++totalCount;
+                if (!count.containsKey(luck)) {
+                    count.putIfAbsent(luck, new HashMap<>());
+                }
+                count.get(luck).merge(weapon.rarity, 1, Integer::sum);
+            }
+        }
+        System.out.println("Total weapons: " + totalCount);
+        System.out.println("Average chance:");
+        count.forEach((luck, chance) -> {
+            double luckCount = chance.values().stream().mapToInt(i -> i).sum();
+            System.out.printf("Luck %.2f: COMMON - %.0f%%,\tUNCOMMON - %.0f%%,\tRARE - %.0f%%,\tEPIC - %.0f%%,\tLEGENDARY - %.0f%%%n",
+                    luck, chance.getOrDefault(Rarity.COMMON, 0) / luckCount * 100,
+                    chance.getOrDefault(Rarity.UNCOMMON, 0) / luckCount * 100,
+                    chance.getOrDefault(Rarity.RARE, 0) / luckCount * 100,
+                    chance.getOrDefault(Rarity.EPIC, 0) / luckCount * 100,
+                    chance.getOrDefault(Rarity.LEGENDARY, 0) / luckCount * 100);
+        });
     }
 }

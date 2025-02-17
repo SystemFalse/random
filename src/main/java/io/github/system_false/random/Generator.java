@@ -48,7 +48,7 @@ import java.util.stream.Stream;
  * @param <T> the type of the generated value
  */
 @FunctionalInterface
-public interface Generator<T> extends Contextual<Generator<T>> {
+public interface Generator<T> extends Contextual {
     /**
      * Generates a random value of the type represented by this generator using the given context.
      * @param random  PRNG or RNG to use
@@ -56,7 +56,7 @@ public interface Generator<T> extends Contextual<Generator<T>> {
      * @return a random value of the type represented by this generator
      */
     default T generateWithContext(RandomGenerator random, Object context) {
-        return withContext(context, g -> g.generate(random));
+        return this.<Generator<T>, T>withContext(context, g -> g.generate(random));
     }
 
     /**
@@ -68,6 +68,9 @@ public interface Generator<T> extends Contextual<Generator<T>> {
      */
     default T generate(RandomGenerator random, Generator<?> caller) {
         Objects.requireNonNull(caller, "caller");
+        if (caller == this) {
+            return generate(random);
+        }
         return caller.context().map(o -> generateWithContext(random, o)).orElse(generate(random));
     }
 
@@ -97,7 +100,32 @@ public interface Generator<T> extends Contextual<Generator<T>> {
      */
     default <R> Generator<R> map(Function<T, R> mapper) {
         Objects.requireNonNull(mapper);
-        return random -> mapper.apply(generate(random, this));
+        return new Generator<>() {
+            @Override
+            public R generate(RandomGenerator random) {
+                return mapper.apply(Generator.this.generate(random, this));
+            }
+        };
+    }
+
+    /**
+     * Maps the generated value to a new value of type {@code R} using the given function.
+     * <p>
+     * First argument in function is the generated value, and the second argument is the contextual object.
+     * </p>
+     * @param mapper the function to use for mapping
+     * @param <R>    the type of the new value
+     * @return a new {@link Generator} that maps the generated value to a new value of type {@code R}
+     */
+    default <R> Generator<R> map(BiFunction<T, Contextual, R> mapper) {
+        Objects.requireNonNull(mapper);
+        var encapsulated = Contextual.encapsulate(this);
+        return new Generator<>() {
+            @Override
+            public R generate(RandomGenerator random) {
+                return mapper.apply(Generator.this.generate(random, this), encapsulated);
+            }
+        };
     }
 
     /**
@@ -111,7 +139,12 @@ public interface Generator<T> extends Contextual<Generator<T>> {
      */
     default <R> Generator<R> flatMap(Function<T, Generator<R>> mapper) {
         Objects.requireNonNull(mapper);
-        return random -> mapper.apply(generate(random, this)).generate(random, this);
+        return new Generator<>() {
+            @Override
+            public R generate(RandomGenerator random) {
+                return mapper.apply(Generator.this.generate(random, this)).generate(random, this);
+            }
+        };
     }
 
     /**
