@@ -17,16 +17,14 @@
 
 package io.github.system_false.random.builder;
 
+import io.github.system_false.random.Contextual;
 import io.github.system_false.random.Generator;
 import io.github.system_false.random.PoolGenerator;
 import io.github.system_false.random.PoolItem;
 
 import java.util.*;
 import java.util.concurrent.atomic.AtomicLong;
-import java.util.function.Consumer;
-import java.util.function.Function;
-import java.util.function.Predicate;
-import java.util.function.Supplier;
+import java.util.function.*;
 import java.util.random.RandomGenerator;
 
 /**
@@ -48,6 +46,7 @@ public class PoolBuilder<T, R> extends AbstractBuilder<PoolGenerator<R>> {
      * Pool containing items.
      */
     protected ArrayList<PoolItem<T>> items;
+    private ContextualImpl<R> contextual;
 
     /**
      * Public constructor that creates new instance of {@link PoolBuilder}. It takes a function
@@ -204,9 +203,34 @@ public class PoolBuilder<T, R> extends AbstractBuilder<PoolGenerator<R>> {
         return this;
     }
 
+    /**
+     * Method takes {@code BiConsumer} that continues configuration of this builder.
+     * <p>
+     * First argument is this builder, second one is contextual object that is linked to building object.
+     * Invoking methods {@code context()} and {@code withContext(...)} on this contextual object in given
+     * action will not have any effect. Contextual object can be used only in lambdas expressions.
+     * </p>
+     * @param action configuration action
+     * @return this builder
+     * @throws NullPointerException if {@code action} is {@code null}
+     */
+    public PoolBuilder<T, R> withContext(BiConsumer<PoolBuilder<T, R>, Contextual<Generator<R>>> action) {
+        checkInstance();
+        Objects.requireNonNull(action, "action");
+        if (contextual == null) {
+            contextual = new ContextualImpl<>();
+        }
+        action.accept(this, contextual);
+        return this;
+    }
+
     @Override
     protected PoolGenerator<R> build0() {
-        return poolBuilder.apply(List.copyOf(items));
+        PoolGenerator<R> pool = poolBuilder.apply(List.copyOf(items));
+        if (contextual != null) {
+            contextual.setBase(pool);
+        }
+        return pool;
     }
 
     @Override

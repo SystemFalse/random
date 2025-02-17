@@ -71,4 +71,30 @@ public interface Contextual<T extends Contextual<T>> {
         }
         return result;
     }
+
+    /**
+     * Method returns new contextual object that encapsulates given object.
+     * @param object object to encapsulate
+     * @param <E>    type of encapsulated object
+     * @return new contextual object
+     */
+    static <E extends Contextual<E>> Contextual<E> encapsulate(E object) {
+        Objects.requireNonNull(object, "object");
+        return new Contextual<>() {
+            @Override
+            public Optional<?> context() {
+                return object.context();
+            }
+
+            @Override
+            public <R> Optional<R> context(Class<R> castTo) {
+                return object.context(castTo);
+            }
+
+            @Override
+            public <R> R withContext(Object context, Function<E, R> function) {
+                return object.withContext(context, function);
+            }
+        };
+    }
 }
