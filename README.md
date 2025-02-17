@@ -10,7 +10,7 @@ interface. It contains only 1 method to implement: `<T> generate(java.util.Rando
 <dependency>
     <groupId>io.github.systemfalse</groupId>
     <artifactId>random-lib</artifactId>
-    <version>1.2.1</version>
+    <version>1.2.2</version>
 </dependency>
 ```
 
