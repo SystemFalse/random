@@ -340,7 +340,7 @@ class BundlePoolGenerator<T> extends AbstractPoolGenerator<T, T> {
         if (bundleIndex == -1) {
             PoolItem<T> nextItem = items.get(random.nextInt(items.size()));
             notifyItems(nextItem);
-            return nextItem.generate(random);
+            return nextItem.generate(random, this);
         }
         int selected = random.nextInt(items.size() - bundleIndex) + bundleIndex;
         PoolItem<T> next = items.get(selected);
@@ -349,7 +349,7 @@ class BundlePoolGenerator<T> extends AbstractPoolGenerator<T, T> {
         items.set(selected, current);
         bundleIndex = (bundleIndex + 1) % items.size();
         notifyItems(next);
-        return next.generate(random);
+        return next.generate(random, this);
     }
 }
 
@@ -365,7 +365,7 @@ class OrderedPoolGenerator<T> extends AbstractPoolGenerator<T, T> {
         PoolItem<T> next = items.get(current);
         current = ++current % items.size();
         notifyItems(next);
-        return next.generate(random);
+        return next.generate(random, this);
     }
 }
 
@@ -393,7 +393,7 @@ class WeightedPoolGenerator<T> extends AbstractPoolGenerator<T, Optional<T>> {
             return cmp <= 0;
         }).findFirst();
         select.ifPresent(this::notifyItems);
-        return select.map(item -> item.generate(random));
+        return select.map(item -> item.generate(random, this));
     }
 }
 
@@ -414,7 +414,7 @@ class MultiplePoolGenerator extends AbstractPoolGenerator<Object, List<Object>> 
         ArrayList<Object> list = new ArrayList<>(items.size());
         items.forEach(item -> {
             if (item.test()) {
-                Object next = item.generate(random);
+                Object next = item.generate(random, this);
                 if (unwrapCollection && next instanceof Collection<?> c) {
                     list.addAll(c);
                 } else {

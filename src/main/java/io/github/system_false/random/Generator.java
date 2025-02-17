@@ -48,7 +48,29 @@ import java.util.stream.Stream;
  * @param <T> the type of the generated value
  */
 @FunctionalInterface
-public interface Generator<T> {
+public interface Generator<T> extends Contextual<Generator<T>> {
+    /**
+     * Generates a random value of the type represented by this generator using the given context.
+     * @param random  PRNG or RNG to use
+     * @param context context
+     * @return a random value of the type represented by this generator
+     */
+    default T generateWithContext(RandomGenerator random, Object context) {
+        return withContext(context, g -> g.generate(random));
+    }
+
+    /**
+     * Generates a random value of the type represented by this generator. Given `caller` object
+     * is used to transfer context from another generator to this.
+     * @param random PRNG or PNG to use
+     * @param caller generator which context will be used
+     * @return a random value of the type represented by this generator
+     */
+    default T generate(RandomGenerator random, Generator<?> caller) {
+        Objects.requireNonNull(caller, "caller");
+        return caller.context().map(o -> generateWithContext(random, o)).orElse(generate(random));
+    }
+
     /**
      * Generates a random value of the type represented by this generator.
      *
@@ -75,7 +97,7 @@ public interface Generator<T> {
      */
     default <R> Generator<R> map(Function<T, R> mapper) {
         Objects.requireNonNull(mapper);
-        return random -> mapper.apply(generate(random));
+        return random -> mapper.apply(generate(random, this));
     }
 
     /**
@@ -89,7 +111,7 @@ public interface Generator<T> {
      */
     default <R> Generator<R> flatMap(Function<T, Generator<R>> mapper) {
         Objects.requireNonNull(mapper);
-        return random -> mapper.apply(generate(random)).generate(random);
+        return random -> mapper.apply(generate(random, this)).generate(random, this);
     }
 
     /**
@@ -98,7 +120,7 @@ public interface Generator<T> {
      * @return a stream of random values of the type represented by this generator
      */
     default Stream<T> stream() {
-        return Stream.generate(this::generate);
+        return stream(Generators.getRandom());
     }
 
     /**

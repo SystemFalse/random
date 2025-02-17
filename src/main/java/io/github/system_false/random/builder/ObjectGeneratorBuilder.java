@@ -38,7 +38,7 @@ import java.util.random.RandomGenerator;
  */
 public class ObjectGeneratorBuilder<T> extends GeneratorBuilder<T> {
     private final Class<T> objectClass;
-    private Function<RandomGenerator, T> constructor;
+    private Generator<T> constructor;
     private final Map<String, Generator<?>> fieldGenerators;
 
     /**
@@ -73,7 +73,8 @@ public class ObjectGeneratorBuilder<T> extends GeneratorBuilder<T> {
      */
     public ObjectGeneratorBuilder<T> constructor(Function<RandomGenerator, T> constructor) {
         checkInstance();
-        this.constructor = Objects.requireNonNull(constructor, "constructor");
+        Objects.requireNonNull(constructor, "constructor");
+        this.constructor = constructor::apply;
         return this;
     }
 
@@ -99,15 +100,18 @@ public class ObjectGeneratorBuilder<T> extends GeneratorBuilder<T> {
         if (constructor.type().parameterCount() != parameters.length) {
             throw new IllegalArgumentException("Invalid count of parameters");
         }
-        this.constructor = rg -> {
-            Object[] args = new Object[parameters.length];
-            for (int i = 0; i < args.length; i++) {
-                args[i] = parameters[i].generate(rg);
-            }
-            try {
-                return (T) constructor.invoke(args);
-            } catch (Throwable e) {
-                throw new RuntimeException(e);
+        this.constructor = new Generator<>() {
+            @Override
+            public T generate(RandomGenerator rg) {
+                Object[] args = new Object[parameters.length];
+                for (int i = 0; i < args.length; i++) {
+                    args[i] = parameters[i].generate(rg, this);
+                }
+                try {
+                    return (T) constructor.invoke(args);
+                } catch (Throwable e) {
+                    throw new RuntimeException(e);
+                }
             }
         };
         return this;
@@ -220,10 +224,10 @@ public class ObjectGeneratorBuilder<T> extends GeneratorBuilder<T> {
 
 class ObjectGenerator<T> implements Generator<T> {
     private final Class<T> clazz;
-    private final Function<RandomGenerator, T> constructor;
+    private final Generator<T> constructor;
     private final Map<String, Generator<?>> fieldGenerators;
 
-    ObjectGenerator(Class<T> clazz, Function<RandomGenerator, T> constructor, Map<String, Generator<?>> fieldGenerators) {
+    ObjectGenerator(Class<T> clazz, Generator<T> constructor, Map<String, Generator<?>> fieldGenerators) {
         this.clazz = clazz;
         this.constructor = constructor;
         this.fieldGenerators = fieldGenerators;
@@ -231,12 +235,12 @@ class ObjectGenerator<T> implements Generator<T> {
 
     @Override
     public T generate(RandomGenerator random) {
-        T obj = constructor.apply(random);
+        T obj = constructor.generate(random, this);
         for (Map.Entry<String, Generator<?>> entry : fieldGenerators.entrySet()) {
             try {
                 Field field = clazz.getDeclaredField(entry.getKey());
                 field.setAccessible(true);
-                field.set(obj, entry.getValue().generate(random));
+                field.set(obj, entry.getValue().generate(random, this));
             } catch (NoSuchFieldException | IllegalAccessException e) {
                 //ignore
             }

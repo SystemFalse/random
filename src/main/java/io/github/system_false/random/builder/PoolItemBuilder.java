@@ -391,7 +391,7 @@ class PoolItemImpl<G> implements PoolItem<G> {
 
     @Override
     public G generate(RandomGenerator random) {
-        return generator.apply(picked, ignored).generate(random);
+        return generator.apply(picked, ignored).generate(random, this);
     }
 
     @Override

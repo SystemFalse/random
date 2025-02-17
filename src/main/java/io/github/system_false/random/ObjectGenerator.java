@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2024 SystemFalse.
+ * Copyright (C) 2025 SystemFalse.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -212,7 +212,7 @@ public class ObjectGenerator<T> implements Generator<T> {
     }
 
     public T generate(RandomGenerator random) {
-        return random(type, null, 1, random);
+        return random(this, type, null, 1, random);
     }
 
     /**
@@ -398,13 +398,14 @@ public class ObjectGenerator<T> implements Generator<T> {
      * also have an empty constructor which is accessible.
      * </p>
      *
+     * @param <T>       the type of the random object
+     * @param caller    {@code ObjectGenerator} object that called this method
      * @param generator the class to use to generate the random object
      * @param random    the random object to use to generate the random object
-     * @param <T>       the type of the random object
      * @return a random object of the given type
      */
     @SuppressWarnings("unchecked")
-    protected static <T> T generate(Class<?> generator, RandomGenerator random) {
+    protected static <T> T generate(ObjectGenerator<?> caller, Class<?> generator, RandomGenerator random) {
         if (!Generator.class.isAssignableFrom(generator)) {
             throw new GenerationException(generator + " does not implement " + Generator.class);
         }
@@ -414,7 +415,7 @@ public class ObjectGenerator<T> implements Generator<T> {
             if (!constructor.trySetAccessible()) {
                 throw new GenerationException("cannot access empty constructor of " + generator.getTypeName());
             }
-            return constructor.newInstance().generate(random);
+            return constructor.newInstance().generate(random, caller);
         } catch (Exception e) {
             throw new GenerationException(e);
         }
@@ -434,24 +435,24 @@ public class ObjectGenerator<T> implements Generator<T> {
      * constructor which is accessible.
      * </p>
      *
+     * @param <T>    the type of the random object
+     * @param caller {@code ObjectGenerator} object that called this method
      * @param type   the type of the random object to generate
      * @param value  the random value to use to generate the random object
      * @param depth  the maximum depth of object generation
      * @param random the random object to use to generate the random object
-     * @param <T>    the type of the random object
      * @return a random object of the given type
-     *
      * @throws GenerationException if the given generator class does not implement
-     *                              the {@link Generator} interface, or if the
-     *                              given generator class does not have an empty
-     *                              constructor
+     *                             the {@link Generator} interface, or if the
+     *                             given generator class does not have an empty
+     *                             constructor
      */
-    protected static <T> T generate(Type type, RandomValue value, int depth, RandomGenerator random) {
+    protected static <T> T generate(ObjectGenerator<?> caller, Type type, RandomValue value, int depth, RandomGenerator random) {
         if (value != null && value.random() && !value.objectGenerator().equals(ObjectGenerator.class)) {
-            return generate(value.objectGenerator(), random);
+            return generate(caller, value.objectGenerator(), random);
         }
         if (value == null || value.random()) {
-            return random(type, value, depth - 1, random);
+            return random(caller, type, value, depth - 1, random);
         } else {
             return defaultValue(type, value);
         }
@@ -482,22 +483,23 @@ public class ObjectGenerator<T> implements Generator<T> {
      * this method returns null.
      * </p>
      *
+     * @param <T>    the type of the random object
+     * @param caller {@code ObjectGenerator} object that called this method
      * @param type   the type of the random object to generate
      * @param value  the random value to use to generate the random object
      * @param depth  the maximum depth of object generation
      * @param random the random object to use to generate the random object
-     * @param <T>    the type of the random object
      * @return a random object of the given type
-     *
      * @throws GenerationException if the given generator class does not implement
-     *                              the {@link Generator} interface, or if the
-     *                              given generator class does not have an empty
-     *                              constructor, or if the given type does not
-     *                              have at least one constructor or static method
+     *                             the {@link Generator} interface, or if the
+     *                             given generator class does not have an empty
+     *                             constructor, or if the given type does not
+     *                             have at least one constructor or static method
      */
     @SuppressWarnings("unchecked")
-    protected static <T> T random(Type type, RandomValue value, int depth, RandomGenerator random) {
-        T randomValue = randomValue(type, value, random);
+    protected static <T> T random(ObjectGenerator<?> caller, Type type, RandomValue value, int depth,
+                                  RandomGenerator random) {
+        T randomValue = randomValue(caller, type, value, random);
         if (randomValue != null) {
             return randomValue;
         }
@@ -515,7 +517,7 @@ public class ObjectGenerator<T> implements Generator<T> {
                 try {
                     Object[] arguments;
                     if (creator == null || creator.random()) {
-                        arguments = random(executable.getParameters(), value, random);
+                        arguments = random(caller, executable.getParameters(), value, random);
                     } else {
                         Parameter[] parameters = executable.getParameters();
                         arguments = new Object[parameters.length];
@@ -543,7 +545,7 @@ public class ObjectGenerator<T> implements Generator<T> {
         Constructor<?> cons = constructors[random.nextInt(constructors.length)];
         if (cons.trySetAccessible()) {
             try {
-                Object[] arguments = random(cons.getParameters(), value, random);
+                Object[] arguments = random(caller, cons.getParameters(), value, random);
                 obj = cons.newInstance(arguments);
             } catch (Exception e) {
                 throw new GenerationException(e);
@@ -559,7 +561,7 @@ public class ObjectGenerator<T> implements Generator<T> {
                 try {
                     RandomValue annotation = field.getAnnotation(RandomValue.class);
                     if (shouldGenerate(value)) {
-                        field.set(obj, generate(field.getGenericType(), annotation, depth - 1, random));
+                        field.set(obj, generate(caller, field.getGenericType(), annotation, depth - 1, random));
                     } else {
                         field.set(obj, defaultValue(field.getGenericType(), annotation));
                     }
@@ -577,17 +579,19 @@ public class ObjectGenerator<T> implements Generator<T> {
      * Returns an array of objects, each of which is a random value of the corresponding type,
      * as specified by the annotations on the given parameters.
      *
+     * @param caller {@code ObjectGenerator} object that called this method
      * @param params the parameters for which to generate random values
      * @param value  the annotation that specifies the depth of the generated values
      * @param random a source of randomness
      * @return an array of randomly generated values, one for each parameter
      */
-    protected static Object[] random(Parameter[] params, RandomValue value, RandomGenerator random) {
+    protected static Object[] random(ObjectGenerator<?> caller, Parameter[] params, RandomValue value,
+                                     RandomGenerator random) {
         Object[] objects = new Object[params.length];
         for (int i = 0; i < params.length; i++) {
             RandomValue annotation = params[i].getAnnotation(RandomValue.class);
             if (shouldGenerate(value)) {
-                objects[i] = generate(params[i].getParameterizedType(), annotation, getDepth(annotation), random);
+                objects[i] = generate(caller, params[i].getParameterizedType(), annotation, getDepth(annotation), random);
             } else {
                 objects[i] = defaultValue(params[i].getParameterizedType(), annotation);
             }
@@ -804,19 +808,22 @@ public class ObjectGenerator<T> implements Generator<T> {
      * The generated record is then constructed using the default constructor
      * of the record class.
      * </p>
+     *
+     * @param caller {@code ObjectGenerator} object that called this method
      * @param clazz  the record class to generate the record from
      * @param value  the annotation that specifies the range of values, or {@code null}
      * @param random a source of randomness
      * @return a randomly generated record
      */
-    private static <T extends Record> T randomRecord(Class<T> clazz, RandomValue value, RandomGenerator random) {
+    private static <T extends Record> T randomRecord(ObjectGenerator<?> caller, Class<T> clazz, RandomValue value,
+                                                     RandomGenerator random) {
         RecordComponent[] components = clazz.getRecordComponents();
         Object[] values = new Object[components.length];
         for (int i = 0; i < components.length; i++) {
             RecordComponent component = components[i];
             RandomValue annotation = component.getAnnotation(RandomValue.class);
             if (shouldGenerate(value)) {
-                values[i] = generate(component.getGenericType(), annotation, getDepth(annotation), random);
+                values[i] = generate(caller, component.getGenericType(), annotation, getDepth(annotation), random);
             } else {
                 values[i] = defaultValue(component.getGenericType(), annotation);
             }
@@ -849,6 +856,8 @@ public class ObjectGenerator<T> implements Generator<T> {
      * Elements in arrays are generated using {@code <type>Values},
      * {@code <type>MinValues} and {@code <type>MaxValues} parameters.
      * </p>
+     *
+     * @param caller   {@code ObjectGenerator} object that called this method
      * @param type     the type of the array
      * @param value    the annotation that specifies the range of values, or {@code null}
      * @param random   a source of randomness
@@ -857,10 +866,11 @@ public class ObjectGenerator<T> implements Generator<T> {
      * @param depth    the object depth of the random generation
      * @return a randomly generated array
      */
-    private static Object randomArray(Type type, RandomValue value, RandomGenerator random, int minCount, int maxCount,
-                                      int depth) {
+    private static Object randomArray(ObjectGenerator<?> caller, Type type, RandomValue value, RandomGenerator random,
+                                      int minCount, int maxCount, int depth) {
         int size = Generator.generateInt(random, minCount, maxCount);
-        return Generator.generateArray(random, extractClass(type), r -> random(type, value, depth - 1, r), size);
+        return Generator.generateArray(random, extractClass(type),
+                r -> random(caller, type, value, depth - 1, r), size);
     }
 
     /**
@@ -876,6 +886,8 @@ public class ObjectGenerator<T> implements Generator<T> {
      * generate the list and then the method is called to add all elements
      * to the generated list.
      * </p>
+     *
+     * @param caller      {@code ObjectGenerator} object that called this method
      * @param listType    the type of the list
      * @param value       the annotation that specifies the range of values, or {@code null}
      * @param random      a source of randomness
@@ -886,11 +898,11 @@ public class ObjectGenerator<T> implements Generator<T> {
      * @return a randomly generated list
      */
     @SuppressWarnings("unchecked")
-    private static List<?> randomList(Type listType, RandomValue value, RandomGenerator random, int minSize,
-                                      int maxSize, Type elementType, int depth) {
+    private static List<?> randomList(ObjectGenerator<?> caller, Type listType, RandomValue value,
+                                      RandomGenerator random, int minSize, int maxSize, Type elementType, int depth) {
         int size = Generator.generateInt(random, minSize, maxSize);
         List<Object> baseList = Generator.generateList(random, extractClass(elementType),
-                r -> random(elementType, value, depth - 1, r), size);
+                r -> random(caller, elementType, value, depth - 1, r), size);
         Class<?> listClass = extractClass(listType);
         if (listClass.equals(List.class)) {
             return baseList;
@@ -932,6 +944,8 @@ public class ObjectGenerator<T> implements Generator<T> {
      * generate the set and then the method is called to add all elements
      * to the generated set.
      * </p>
+     *
+     * @param caller      {@code ObjectGenerator} object that called this method
      * @param setType     the type of the set
      * @param value       the annotation that specifies the range of values, or {@code null}
      * @param random      a source of randomness
@@ -942,11 +956,11 @@ public class ObjectGenerator<T> implements Generator<T> {
      * @return a randomly generated set
      */
     @SuppressWarnings({"unchecked", "rawtypes"})
-    private static Set<?> randomSet(Type setType, RandomValue value, RandomGenerator random, int minSize, int maxSize,
-                                      Type elementType, int depth) {
+    private static Set<?> randomSet(ObjectGenerator<?> caller, Type setType, RandomValue value, RandomGenerator random,
+                                    int minSize, int maxSize, Type elementType, int depth) {
         int size = Generator.generateInt(random, minSize, maxSize);
         Set baseSet = Generator.generateSet(random, extractClass(elementType),
-                r -> random(elementType, value, depth - 1, r), size);
+                r -> random(caller, elementType, value, depth - 1, r), size);
         Class<?> setClass = extractClass(setType);
         if (setClass.equals(Set.class)) {
             return baseSet;
@@ -988,6 +1002,8 @@ public class ObjectGenerator<T> implements Generator<T> {
      * generate the map and then the method is called to add all elements
      * to the generated map.
      * </p>
+     *
+     * @param caller    {@code ObjectGenerator} object that called this method
      * @param mapType   the type of the map
      * @param value     the annotation that specifies the range of values, or {@code null}
      * @param random    a source of randomness
@@ -999,11 +1015,11 @@ public class ObjectGenerator<T> implements Generator<T> {
      * @return a randomly generated map
      */
     @SuppressWarnings({"unchecked", "rawtypes"})
-    private static Map<?, ?> randomMap(Type mapType, RandomValue value, RandomGenerator random, int minSize, int maxSize,
-                                         Type keyType, Type valueType, int depth) {
+    private static Map<?, ?> randomMap(ObjectGenerator<?> caller, Type mapType, RandomValue value, RandomGenerator random,
+                                       int minSize, int maxSize, Type keyType, Type valueType, int depth) {
         int size = Generator.generateInt(random, minSize, maxSize);
         Map baseMap = Generator.generateMap(random, extractClass(keyType), extractClass(valueType),
-                r -> random(keyType, value, depth - 1, r), r -> random(valueType, value, depth - 1, r),
+                r -> random(caller, keyType, value, depth - 1, r), r -> random(caller, valueType, value, depth - 1, r),
                 (o, n) -> o, size
         );
         Class<?> mapClass = extractClass(mapType);
@@ -1039,14 +1055,16 @@ public class ObjectGenerator<T> implements Generator<T> {
      * the random value. The type of the generated value is then converted to the given
      * {@code type} using the constructor with the least number of parameters.
      * </p>
+     *
+     * @param <T>    the type of the generated value
+     * @param caller {@code ObjectGenerator} object that called this method
      * @param type   the type of the value
      * @param value  the random value parameter
      * @param random the random object
-     * @param <T>    the type of the generated value
      * @return a randomly generated value
      */
     @SuppressWarnings({"unchecked", "rawtypes"})
-    protected static <T> T randomValue(Type type, RandomValue value, RandomGenerator random) {
+    protected static <T> T randomValue(ObjectGenerator<?> caller, Type type, RandomValue value, RandomGenerator random) {
         if (type.equals(boolean.class) || type.equals(Boolean.class)) {
             return (T) (Boolean) random.nextBoolean();
         } else if (type.equals(byte.class) || type.equals(Byte.class)) {
@@ -1070,22 +1088,22 @@ public class ObjectGenerator<T> implements Generator<T> {
         if (clazz.isEnum()) {
             return (T) randomEnum((Class<? extends Enum>) clazz, value, random);
         } else if (clazz.isRecord()) {
-            return (T) randomRecord((Class<? extends Record>) clazz, value, random);
+            return (T) randomRecord(caller, (Class<? extends Record>) clazz, value, random);
         } else if (clazz.isArray()) {
             Type[] rawTypes = extractInnerTypes(type);
-            return (T) randomArray(rawTypes[0], value, random, getArrayMinLength(value),
+            return (T) randomArray(caller, rawTypes[0], value, random, getArrayMinLength(value),
                     getArrayMaxLength(value), getDepth(value));
         } else if (List.class.isAssignableFrom(clazz)) {
             Type[] rawTypes = extractInnerTypes(type);
-            return (T) randomList(type, value, random, getContainerMinSize(value), getContainerMaxSize(value), rawTypes[0],
+            return (T) randomList(caller, type, value, random, getContainerMinSize(value), getContainerMaxSize(value), rawTypes[0],
                     getDepth(value));
         } else if (Set.class.isAssignableFrom(clazz)) {
             Type[] rawTypes = extractInnerTypes(type);
-            return (T) randomSet(type, value, random, getContainerMinSize(value), getContainerMaxSize(value), rawTypes[0],
+            return (T) randomSet(caller, type, value, random, getContainerMinSize(value), getContainerMaxSize(value), rawTypes[0],
                     getDepth(value));
         } else if (Map.class.isAssignableFrom(clazz)) {
             Type[] rawTypes = extractInnerTypes(type);
-            return (T) randomMap(type, value, random, getContainerMinSize(value),
+            return (T) randomMap(caller, type, value, random, getContainerMinSize(value),
                     getContainerMaxSize(value), rawTypes[0], rawTypes[1], getDepth(value));
         } else {
             return null;

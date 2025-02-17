@@ -32,6 +32,7 @@ import java.util.random.RandomGeneratorFactory;
 /**
  * Utility class for creating instances of {@link Generator} interface.
  */
+@SuppressWarnings("unused")
 public final class Generators {
     private static Supplier<RandomGenerator> GENERATOR_FACTORY = RandomGeneratorFactory.of("L128X1024MixRandom")::create;
 
@@ -1480,7 +1481,7 @@ public final class Generators {
 
         @Override
         public T generate(RandomGenerator random) {
-            return generator.generate(random);
+            return generator.generate(random, this);
         }
     }
 }

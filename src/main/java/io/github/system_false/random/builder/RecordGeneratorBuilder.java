@@ -134,7 +134,7 @@ class RecordGenerator<T> implements Generator<T> {
     public T generate(RandomGenerator random) {
         Object[] args = new Object[fieldGenerators.size()];
         for (int i = 0; i < args.length; i++) {
-            args[i] = fieldGenerators.get(i).generate(random);
+            args[i] = fieldGenerators.get(i).generate(random, this);
         }
         try {
             return constructor.newInstance(args);
