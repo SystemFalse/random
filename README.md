@@ -1,4 +1,4 @@
-# Random
+# Random Library v1.2.2
 ## Overview
 This is small library for generating random things. It was designed to be used in 1 line of code. The main class is
 `Generators`, which provides a lot of static methods for creating generators. All generators implement the `Generator`
@@ -19,7 +19,7 @@ interface. It contains only 1 method to implement: `<T> generate(java.util.Rando
 Class `io.github.system_false.random.Generators` provides static methods for creating generators of all primitives,
 strings, arrays, lists, sets and maps. To create any instance of the `Generator`, you need to invoke one of methods
 named as `of<type>()`.
-```jshelllanguage
+```java
 //printing 10 random integers
 var randInt = Generators.ofInt();
 for (int i = 0; i < 10; i++) {
@@ -27,7 +27,7 @@ for (int i = 0; i < 10; i++) {
 }
 ```
 Class `Generator` also has mapping methods. They can be used to generate random values from other generators.
-```jshelllanguage
+```java
 //selecting random string from list
 List<String> strings = List.of(/*your data*/);
 var randString = Generators.ofInt(strings.size()).map(strings::get);
@@ -39,7 +39,7 @@ for(int i = 0; i < 10; i++) {
 Besides simple types, this library also provides generators for any `class` via reflection. Annotation `@RandomValue`
 sets random parameters of the object. It can also be applied to `record` components and parameters of constructors and
 methods. Annotation `@RandomCreator` specifies how to create random object.
-```jshelllanguage
+```java
 //person describing class
 class Person {
     @RandomValue(stringValues = {"John", "Jane"})
@@ -59,7 +59,7 @@ System.out.println(randPerson.generate());
 Weighted pools are also supported. They can be created using `ofPool` and `ofMultiplePool` methods. First one returns
 only 1 value at 1 call, second one randomizes all values and returns all of them at 1 call. Pool can contain another
 pools.
-```jshelllanguage
+```java
 //loot table
 Random rnd = new Random();
 var loot = Generators.ofMultiplePool(Generators.ofInt(100, 200),
@@ -79,7 +79,7 @@ the usual constructor of object generators cannot initialize the final fields, a
 generators all fields must be initialized before calling the `build()` method.
 
 Object class example:
-```jshelllanguage
+```java
 class UserInfo {
     UUID id;
     String name;
@@ -104,7 +104,7 @@ var generator = Generators.builder(UserInfo.class)
 Here `generator` will produce `UserInfo` objects with random `id`, `name` and `age`.
 
 Record example:
-```jshelllanguage
+```java
 record Color(int red, int green, int blue) {}
 
 var generator = Generators.recordBuilder(Color.class)
@@ -126,7 +126,7 @@ the elements in it. This pool will call the `Police.picked()` method only for th
 `PoolItem.ignored()` method for all other items.
 
 Example:
-```jshelllanguage
+```java
 var evenDigits = Generators.<Integer>bundlePoolBuilder(true)
         .add(0, 2, 4, 6, 8)
         .build();
@@ -143,7 +143,7 @@ elements in it. This pool will call the `Police.picked()` method only for the se
 `PoolItem.ignored()` method for all other items.
 
 Example:
-```jshelllanguage
+```java
 Integer[] pool = new Integer[] { 5, 3, 8, 5, 2, 9 };
 var poolGenerator = Generators.ofOrderedPool(pool);
 Random random = new Random();
@@ -161,7 +161,7 @@ will be returned. This pool will call the `Police.picked()` method only for the 
 `PoolItem.ignored()` method for all other items.
 
 Example:
-```jshelllanguage
+```java
 var numbers = Generators.<Integer>weightedPoolBuilder()
         .add(pb -> pb
                 .value(0)
@@ -184,7 +184,7 @@ complex pools based on other pools.
 
 Example:
 
-```jshelllanguage
+```java
 record Money(long amount) {}
 enum Rarity {
     COMMON,
@@ -245,7 +245,7 @@ Ignore action of the item can be set using `Runnable`, `LongConsumer` or `LongUn
 returns ignore action that depends on the number of times the item was ignored and returns new number of times.
 
 Example:
-```jshelllanguage
+```java
 var item = PoolItem.<Integer>builder()
         .value(5)
         .weight(10)
