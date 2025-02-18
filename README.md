@@ -1,8 +1,8 @@
 # Random Library v1.2.2
 ## Overview
-This is small library for generating random things. It was designed to be used in 1 line of code. The main class is
-`Generators`, which provides a lot of static methods for creating generators. All generators implement the `Generator`
-interface. It contains only 1 method to implement: `<T> generate(java.util.RandomGenerator)`.
+This is small library for generating random things. It was designed to be used in 1 line of code. The general class is
+`Generators`, which provides a lot of static methods for creating generators. All generators implement the functional
+interface `Generator` that provides method `generate(java.util.random.RandomGenerator)`.
 
 ## Installation
 ### Maven
@@ -255,3 +255,21 @@ var item = PoolItem.<Integer>builder()
         .build();
 ```
 Here `item` will always return 5, it has weight 10 and will be picked with 30% probability.
+
+### Mapping
+`Generator` interface provides mapping methods like `Stream` and `Optiaonal` do. There are two methods to preform
+mapping: `<R> Generator<R> map(Function<T, R>)` and `<R> Generator<R> map(BiFunction<T, Contextual, R>)`. First one takes
+simple function that converts object created by generator to another object. Second one takes function that takes
+object created by generator and context. All these methods return new generators which are bound to base object.
+```java
+//generator takes any number as context and adds it to the generated value
+var generator = Generators.ofLong(1, 100)
+        .map((l, c) -> Math.min(100, l + c.context(Number.class).orElse(0).longValue()));
+```
+
+### Context
+`Generator` interface extends `Contextual` interface that allows to use object with specified "context". "Context" is
+object that is provided to contextual object and can be used by its methods. To set context use method
+`<C extends Context, R> R withContext(Object, Function(C, R))` or
+`<C extends Context> void withContext(Object, Consumer<C>)`. Given context can be used only during function call.
+Only one thread can use this method at the same time.
