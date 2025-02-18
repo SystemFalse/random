@@ -17,8 +17,10 @@
 
 package io.github.system_false.random;
 
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Objects;
 import java.util.Optional;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 
 /**
@@ -28,7 +30,9 @@ import java.util.function.Function;
  * @see Contextual
  */
 class ContextCache {
-    private static final ConcurrentHashMap<Contextual, Object> cache = new ConcurrentHashMap<>();
+    private record CacheEntry(Object commonContext, Map<Contextual, Object> map) {}
+
+    private static final Map<Thread, CacheEntry> cache = new HashMap<>();
 
     /**
      * Private constructor to prevent instantiation.
@@ -42,7 +46,17 @@ class ContextCache {
      * @see Contextual#withContext(Object, Function)
      */
     static void setContext(Contextual contextual, Object context) {
-        cache.put(contextual, context);
+        Thread thread = Thread.currentThread();
+        synchronized (cache) {
+            CacheEntry entry = cache.getOrDefault(thread, null);
+            if (entry == null) {
+                cache.put(thread, new CacheEntry(context, new HashMap<>(Map.of(contextual, context))));
+            } else {
+                if (!Objects.equals(entry.commonContext(), context)) {
+                    entry.map().put(contextual, context);
+                }
+            }
+        }
     }
 
     /**
@@ -51,8 +65,12 @@ class ContextCache {
      * @return context
      * @see Contextual#context()
      */
-    static Optional<?> getContext(Contextual contextual) {
-        return Optional.ofNullable(cache.getOrDefault(contextual, null));
+    static synchronized Optional<?> getContext(Contextual contextual) {
+        Thread thread = Thread.currentThread();
+        synchronized (cache) {
+            return Optional.ofNullable(cache.getOrDefault(thread, null))
+                    .map(entry -> entry.map().getOrDefault(contextual, entry.commonContext()));
+        }
     }
 
     /**
@@ -60,7 +78,16 @@ class ContextCache {
      * @param contextual object to remove context
      * @see Contextual#withContext(Object, Function)
      */
-    static void resetContext(Contextual contextual) {
-        cache.remove(contextual);
+    static synchronized void resetContext(Contextual contextual) {
+        Thread thread = Thread.currentThread();
+        synchronized (cache) {
+            CacheEntry entry = cache.getOrDefault(thread, null);
+            if (entry != null) {
+                entry.map().remove(contextual);
+                if (entry.map().isEmpty()) {
+                    cache.remove(thread);
+                }
+            }
+        }
     }
 }
